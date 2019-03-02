@@ -34,10 +34,10 @@ resource "packet_ip_attachment" "kubernetes_lb_block" {
 }
 
 data "external" "k3s_token" {
-  program = ["sh", "${path.module}/get_k3s_token.sh"]
+  program = ["bash", "${path.module}/get_k3s_token.sh"]
 
   query = {
-    controller = "${packet_device.k3s_primary.network.0.address}"
+    token = "${packet_device.k3s_primary.network.0.address}"
   }
 }
 
@@ -46,7 +46,7 @@ data "template_file" "node" {
 
   vars {
     kube_token      = "${data.external.k3s_token.result["token"]}"
-    primary_node_ip = "${packet_device.k3s_primary.network.2.address}"
+    primary_node_ip = "${packet_device.k3s_primary.network.0.address}"
   }
 }
 

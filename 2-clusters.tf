@@ -1,4 +1,4 @@
-module "cluster_nrt1" {
+module "cluster_facility_a" {
   source = "modules/cluster_pool"
 
   count                = "${var.count}"

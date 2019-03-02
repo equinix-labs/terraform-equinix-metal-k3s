@@ -8,7 +8,7 @@ resource "packet_project" "k3s_packet" {
 }
 
 resource "packet_reserved_ip_block" "kubernetes" {
-  project_id = "${packet_project.kubernetes_multiarch.id}"
+  project_id = "${packet_project.k3s_packet.id}"
   facility   = "${var.facility}"
   quantity   = 2
 }
