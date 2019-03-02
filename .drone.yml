@@ -1,0 +1,24 @@
+kind: pipeline
+name: default
+
+steps:
+  
+- name: Deploy
+  image: alpine
+  environment:
+    TF_VAR_auth_token:
+      from_secret: TF_VAR_auth_token
+    TF_VAR_count_x86:
+      from_secret: TF_VAR_count_x86
+    TF_VAR_count_arm:
+      from_secret: TF_VAR_count_arm
+  commands:
+  - apk --update add curl
+  - curl --silent --output terraform.zip "https://releases.hashicorp.com/terraform/0.11.11/terraform_0.11.11_linux_amd64.zip"
+  - unzip terraform.zip ; rm -f terraform.zip; chmod +x terraform
+  - mkdir -p ${HOME}/bin ; export PATH=${PATH}:${HOME}/bin; mv terraform ${HOME}/bin/
+  - terraform -v
+  - terraform init 
+  - terraform validate
+  - terraform apply -auto-approve
+  - terraform destroy -auto-approve
