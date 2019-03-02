@@ -8,10 +8,14 @@ steps:
   environment:
     TF_VAR_auth_token:
       from_secret: TF_VAR_auth_token
-    TF_VAR_count_x86:
-      from_secret: TF_VAR_count_x86
-    TF_VAR_count_arm:
-      from_secret: TF_VAR_count_arm
+    TF_VAR_count:
+      from_secret: TF_VAR_count
+    TF_VAR_plan_primary:
+      from_secret: TF_VAR_plan_primary
+    TF_VAR_plan_node:
+      from_secret: TF_VAR_plan_node
+    TF_VAR_facility:
+      from_secret: TF_VAR_facility
   commands:
   - apk --update add curl
   - curl --silent --output terraform.zip "https://releases.hashicorp.com/terraform/0.11.11/terraform_0.11.11_linux_amd64.zip"
