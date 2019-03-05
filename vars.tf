@@ -2,6 +2,10 @@ variable "auth_token" {
   description = "Your Packet API key"
 }
 
+variable "project_id" {
+  description = "Your Packet Project ID"
+}
+
 variable "facility" {
   description = "Your primary facility"
   default = "nrt1"
