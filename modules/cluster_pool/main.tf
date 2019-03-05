@@ -5,6 +5,7 @@ variable "facility" {}
 variable "auth_token" {}
 variable "project_id" {}
 variable "cluster_name" {}
+variable "ssh_private_key_path" {}
 
 resource "packet_reserved_ip_block" "packet-k3s" {
   project_id = "${var.project_id}"
@@ -42,7 +43,8 @@ data "external" "k3s_token" {
   program = ["bash", "${path.module}/get_k3s_token.sh"]
 
   query = {
-    token = "${packet_device.k3s_primary.network.0.address}"
+    token        = "${packet_device.k3s_primary.network.0.address}"
+    ssh_key_path = "${var.ssh_private_key_path}"
   }
 }
 

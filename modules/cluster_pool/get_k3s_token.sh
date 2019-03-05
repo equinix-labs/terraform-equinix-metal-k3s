@@ -14,11 +14,13 @@ function check_deps() {
 function parse_input() {
   # jq reads from stdin so we don't have to set up any inputs, but let's validate the outputs
   eval "$(jq -r '@sh "export HOST=\(.token)"')"
+  eval "$(jq -r '@sh "export PRIVATE_KEY=\(.ssh_key_path)"')"
   if [[ -z "${HOST}" ]]; then export HOST=none; fi
+  if [[ -z "${PRIVATE_KEY}" ]]; then export PRIVATE_KEY=none; fi
 }
 
 function produce_output() {
-  TOKEN=$(ssh -oStrictHostKeyChecking=no root@$1 "cat /var/lib/rancher/k3s/server/node-token")
+  TOKEN=$(ssh -oStrictHostKeyChecking=no -i $2 root@$1 "cat /var/lib/rancher/k3s/server/node-token")
 #  jq -n \
 #    --arg token "$TOKEN" \
 #    '{"token":$token}'
@@ -28,4 +30,4 @@ function produce_output() {
 check_deps && \
 parse_input && \
 sleep 120 && \
-produce_output $HOST
+produce_output $HOST $PRIVATE_KEY
