@@ -3,9 +3,8 @@ variable "auth_token" {
 }
 
 variable "facility" {
-  description = "Packet Facility"
-  default     = "ewr1"
-}
+  description = "Your primary facility"
+  default = "nrt1"
 
 variable "plan_primary" {
   description = "Plan for ARM Nodes"
