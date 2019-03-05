@@ -8,4 +8,5 @@ module "cluster_NAME_REGION" {
   facility             = "REGION"
   auth_token           = "${var.auth_token}"
   project_id           = "${packet_project.k3s_packet.id}"
+  ssh_private_key_path = "${var.ssh_private_key_path}"
 }

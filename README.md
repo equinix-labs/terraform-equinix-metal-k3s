@@ -19,6 +19,8 @@ The only required variables are `auth_token` (your [Packet API](https://www.pack
 
 In addition to Terraform, your client machine (where Terraform will be run from) will need [`curl`](https://curl.haxx.se/download.html), and [`jq`](https://stedolan.github.io/jq/download/) available in order for all of the automation to run as expected.
 
+You will need an SSH key associated with this project, or your account. Add the identity path to `ssh_private_key`--this will only be used _locally_ to assist Terraform in completing cluster bootstrapping (needed to retrieve the cluster node-token from the controller node). 
+
 Clusters
 -
 
