@@ -4,10 +4,7 @@ variable "plan_node" {}
 variable "facility" {}
 variable "auth_token" {}
 variable "project_id" {}
-
-data "external" "cluster_name" {
-  program = ["sh", "${path.module}/cluster_name.sh"]
-}
+variable "cluster_name" {}
 
 resource "packet_reserved_ip_block" "packet-k3s" {
   project_id = "${var.project_id}"
@@ -26,7 +23,7 @@ data "template_file" "controller" {
 }
 
 resource "packet_device" "k3s_primary" {
-  hostname         = "packet-k3s-${data.external.cluster_name.result["cluster_name"]}-controller"
+  hostname         = "packet-k3s-${var.cluster_name}-controller"
   operating_system = "ubuntu_16_04"
   plan             = "${var.plan_primary}"
   facility         = "${var.facility}"
@@ -59,7 +56,7 @@ data "template_file" "node" {
 }
 
 resource "packet_device" "arm_node" {
-  hostname         = "${format("packet-k3s-${data.external.cluster_name.result["cluster_name"]}-%02d", count.index)}"
+  hostname         = "${format("packet-k3s-${var.cluster_name}-%02d", count.index)}"
   operating_system = "ubuntu_16_04"
   count            = "${var.count}"
   plan             = "${var.plan_node}"
