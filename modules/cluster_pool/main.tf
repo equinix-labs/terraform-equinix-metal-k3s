@@ -2,23 +2,31 @@ variable "count" {}
 variable "plan_primary" {}
 variable "plan_node" {}
 variable "facility" {}
-variable "cluster_name" {}
 variable "auth_token" {}
 variable "project_id" {}
-variable "packet_network_block" {}
+
+data "external" "cluster_name" {
+  program = ["sh", "${path.module}/cluster_name.sh"]
+}
+
+resource "packet_reserved_ip_block" "packet-k3s" {
+  project_id = "${var.project_id}"
+  facility   = "${var.facility}"
+  quantity   = 2
+}
 
 data "template_file" "controller" {
   template = "${file("${path.module}/controller.tpl")}"
 
   vars {
-    packet_network_cidr = "${var.packet_network_block}"
+    packet_network_cidr = "${packet_reserved_ip_block.packet-k3s.cidr_notation}"
     packet_auth_token   = "${var.auth_token}"
     packet_project_id   = "${var.project_id}"
   }
 }
 
 resource "packet_device" "k3s_primary" {
-  hostname         = "${var.cluster_name}-controller"
+  hostname         = "packet-k3s-${data.external.cluster_name.result["cluster_name"]}-controller"
   operating_system = "ubuntu_16_04"
   plan             = "${var.plan_primary}"
   facility         = "${var.facility}"
@@ -30,7 +38,7 @@ resource "packet_device" "k3s_primary" {
 
 resource "packet_ip_attachment" "kubernetes_lb_block" {
   device_id     = "${packet_device.k3s_primary.id}"
-  cidr_notation = "${var.packet_network_block}"
+  cidr_notation = "${packet_reserved_ip_block.packet-k3s.cidr_notation}"
 }
 
 data "external" "k3s_token" {
@@ -51,7 +59,7 @@ data "template_file" "node" {
 }
 
 resource "packet_device" "arm_node" {
-  hostname         = "${format("${var.cluster_name}-%02d", count.index)}"
+  hostname         = "${format("packet-k3s-${data.external.cluster_name.result["cluster_name"]}-%02d", count.index)}"
   operating_system = "ubuntu_16_04"
   count            = "${var.count}"
   plan             = "${var.plan_node}"
