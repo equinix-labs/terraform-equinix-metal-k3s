@@ -66,4 +66,7 @@ sleep 120 && \
 apply_workloads && \
 packet_csi_config && \
 metal_lb
-echo "Finishing..."
+echo "Finishing..." ; \
+echo "Renaming context to $(hostname)..." && \
+kubectl config rename-context default $(hostname) && \
+kubectl config get-contexts
