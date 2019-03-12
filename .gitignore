@@ -2,3 +2,5 @@
 *.tfstate
 *.tfstate.backup
 *.tfvars
+packet_key
+packet_key.pub
