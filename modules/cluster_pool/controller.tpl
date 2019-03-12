@@ -26,10 +26,11 @@ metadata:
 data:
   config: |
     address-pools:
-    - name: packet-network
+    - name: packet-public-network
       protocol: layer2
       addresses:
       - ${packet_network_cidr}
+      auto-assign: false
 EOF
 }
 
@@ -65,7 +66,8 @@ check_cluster && \
 sleep 120 && \
 apply_workloads && \
 packet_csi_config && \
-metal_lb
+metal_lb && \
+echo "MetalLB configured...\nTo allocate a Service with an IP from ${packet_network_cidr}, create Service with following annotation...\n\tmetallb.universe.tf/packet-public-network\n\nin your definition Metadata." ; \
 echo "Finishing..." ; \
 echo "Renaming context to $(hostname)..." && \
 kubectl config rename-context default $(hostname) && \
