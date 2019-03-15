@@ -7,6 +7,7 @@ module "cluster_NAME_REGION" {
   plan_node            = "${var.plan_node}"
   facility             = "REGION"
   auth_token           = "${var.auth_token}"
-  project_id           = "${packet_project.k3s_packet.id}"
+  project_id           = "${var.project_id}"
   ssh_private_key_path = "${var.ssh_private_key_path}"
+  anycast_ip           = "${packet_reserved_ip_block.anycast_ip.address}"
 }

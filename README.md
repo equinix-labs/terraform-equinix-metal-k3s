@@ -21,6 +21,8 @@ In addition to Terraform, your client machine (where Terraform will be run from)
 
 You will need an SSH key associated with this project, or your account. Add the identity path to `ssh_private_key`--this will only be used _locally_ to assist Terraform in completing cluster bootstrapping (needed to retrieve the cluster node-token from the controller node). 
 
+BGP will need to be enabled for your project. 
+
 Clusters
 -
 
@@ -39,14 +41,14 @@ and then apply your new cluster module (if you do not wish to apply any other ou
 ```
 make cluster_name="cluster_control_ewr1" apply-cluster
 ```
-where `cluster_name` is the module name for that cluster in `2-clusters.tf`, if you wish to review this manually before applying. This will follow the format `cluster_$cluster-id_$facility`. 
+where `cluster_name` is the module name for that cluster in `3-cluster-inventory.tf`, if you wish to review this manually before applying. This will follow the format `cluster_$cluster-id_$facility`. 
 
 <h3>Manually defining a Cluster</h3>
 
-To create a cluster manually, in `2-clusters.tf`, instantiate a new `cluster_pool` module:
+To create a cluster manually, in `3-cluster-inventory.tf` (this is ignored by git--your initial cluster setup is in `2-clusters.tf`, and is tracked), instantiate a new `cluster_pool` module:
 
 ```
-module "cluster_nrt1" {
+module "cluster_name_nrt1" {
   source = "modules/cluster_pool"
 
   cluster_name         = "your_cluster_name"
