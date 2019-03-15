@@ -60,6 +60,18 @@ function apply_workloads {
         wget https://raw.githubusercontent.com/google/metallb/v0.7.3/manifests/metallb.yaml
 }
 
+function start_anycast {
+	apt update; apt install -y bird ; \
+	while true; do \
+		if [ ! -f /root/create_bird_conf.sh ]; then \
+			echo "Bird not ready...waiting..."
+		else
+			bash /root/create_bird_conf.sh "${anycast_ip}"
+			break
+		fi
+	done
+}
+
 init_cluster && \
 start_cluster && \
 check_cluster && \
@@ -71,4 +83,7 @@ echo "MetalLB configured...\nTo allocate a Service with an IP from ${packet_netw
 echo "Finishing..." ; \
 echo "Renaming context to $(hostname)..." && \
 kubectl config rename-context default $(hostname) && \
-kubectl config get-contexts
+kubectl config get-contexts && \
+echo "Cluster controller spinup complete...setting up Bird..." && \
+echo "Starting script for ${anycast_ip}..." ; \
+start_anycast

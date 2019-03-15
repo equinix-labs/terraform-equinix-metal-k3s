@@ -4,3 +4,4 @@
 *.tfvars
 packet_key
 packet_key.pub
+3-cluster-inventory.tf
