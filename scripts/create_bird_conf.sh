@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#Adapted from https://github.com/atoonk/packet_anycast/blob/master/scripts/create_bird_conf.sh
 json=$(curl -s https://metadata.packet.net/metadata)
 MY_PRIVATE_IP=$(echo $json | jq -r ".network.addresses[] | select(.public == false) | .address")
 MY_PRIVATE_GW=$(echo $json | jq -r ".network.addresses[] | select(.public == false) | .gateway")

@@ -12,4 +12,3 @@ module "cluster_facility" {
   ssh_private_key_path = "${var.ssh_private_key_path}"
   anycast_ip           = "${packet_reserved_ip_block.anycast_ip.address}"
 }
-
