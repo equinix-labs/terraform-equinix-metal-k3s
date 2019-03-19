@@ -20,11 +20,11 @@ type Response struct {
 func getRecord() Response {
 	req, err := http.Get("http://ipinfo.io/json")
 	if err != nil {
-		log.Println("Request Failed")
+		log.Fatal(err)
 	}
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		log.Fatal("Failed")
+		log.Fatal(err)
 	}
 	var record Response
 	json.Unmarshal(body, &record)
