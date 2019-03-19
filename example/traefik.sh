@@ -23,9 +23,9 @@ spec:
     spec:
       containers:
       - name: location
-        image: jmarhee/python-location
+        image: jmarhee/go-location
         ports:
-        - containerPort: 5000
+        - containerPort: 8080
 ---
 apiVersion: v1
 kind: Service
@@ -34,7 +34,7 @@ metadata:
 spec:
   ports:
   - name: http
-    targetPort: 5000
+    targetPort: 8080
     port: 80
   selector:
     app: location
