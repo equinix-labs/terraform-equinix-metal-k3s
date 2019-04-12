@@ -1,0 +1,6 @@
+---
+- hosts:
+    - controllers
+  become: true
+  roles:
+    - demo

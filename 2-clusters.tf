@@ -1,6 +1,6 @@
 #Your Initial Cluster is defined here, subsequent clusters inventoried in 3-cluster-inventory.tf, created by Makefile
 module "cluster_facility" {
-  source = "modules/cluster_pool"
+  source = "./modules/cluster_pool"
 
   cluster_name         = "primary"
   count                = "${var.count}"
