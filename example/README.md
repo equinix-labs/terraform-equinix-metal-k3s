@@ -19,17 +19,15 @@ Please ensure [Local BGP is enabled in your Packet project](https://support.pack
 Setup
 ==
 
-Copy `traefik.sh` to each of your cluster controllers (or any machine with client access to the controllers), and run the script to configure Traefik and the demo application.
-
 Keep in mind that the Ingress requires a FQDN, please populate this (and update your local hosts file accordingly if this is not a resolvable domain), before applying. 
+
+To complete this, in `example/deploy_demo/roles/demo/files/traefik.sh`, update the following line to reflect your FQDN:
 
 ```
   48   │ spec:
   49   │   rules:
   50   │   - host: your.host.name
 ```
-
-This is a small demo Flask application, and is downloaded from Docker Hub as `jmarhee/python-location`; Dockerfile and application files are included in this repo if you prefer/requiring building and providing it to Kubernetes from a private/local registry. 
 
 Deploy
 ==
