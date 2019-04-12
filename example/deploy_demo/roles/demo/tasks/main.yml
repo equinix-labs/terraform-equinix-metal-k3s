@@ -6,3 +6,5 @@
     mode: 755
 - name: run deploy script
   command: sh /root/traefik.sh
+  environment:
+    HOSTNAME: "{{fqdn}}"
