@@ -1,0 +1,8 @@
+---
+- name: copy deploy script
+  copy:
+    src: files/traefik.sh
+    dest: /root/traefik.sh
+    mode: 755
+- name: run deploy script
+  command: sh /root/traefik.sh

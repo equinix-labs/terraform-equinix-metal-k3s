@@ -34,6 +34,17 @@ This is a small demo Flask application, and is downloaded from Docker Hub as `jm
 Deploy
 ==
 
+Run `create_inventory.sh` to generate a hosts inventory, and then in the `deploy_demo` Ansible directory, you can apply the apply:
+
+```
+sh create_inventory.sh
+cd deploy_demo
+ansible-playbook -i inventory.yaml main.yml
+```
+
+or manually copy `example/deploy_demo/roles/demo/files/traefik.sh` to your `kubectl` client machine and run manually to deploy Traefik and the application.
+
+
 The `trafik.sh` script will deploy the application as a DaemonSet on your cluster, and expose this through an ingress on port 80, by default, so from there, you can access the application (and verify the distribution of requests through the Anycast IP) using:
 
 ```

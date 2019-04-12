@@ -61,3 +61,19 @@ module "cluster_name_nrt1" {
 }
 ```
 This creates a single-controller cluster, with `count` number of agent nodes in `facility`.
+
+<h3>Demo Project</h3>
+
+In `example/`, there are files to configure and deploy a demo project that, once your request is received, returns the IP of the cluster serving your request to demonstrate the use of Packet's Global IPv4 addresses to distribute traffic globally to your edge cluster deployments.
+
+To run the project, you can run the `deploy_demo` Ansible project by running the `create_inventory.sh` script to gather your cluster controller IPs into your inventory for Ansible:
+
+```
+cd example/
+sh create_inventory.sh
+cd deploy_demo
+ansible-playbook -i inventory.yaml main.yml
+```
+
+or manually copy `example/deploy_demo/roles/demo/files/traefik.sh` to your `kubectl` client machine and run manually to deploy Traefik and the application.
+
