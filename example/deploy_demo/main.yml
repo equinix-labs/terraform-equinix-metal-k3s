@@ -3,4 +3,4 @@
     - controllers
   become: true
   roles:
-    - demo
+    - { role: demo, fqdn: packet.dev }

@@ -21,18 +21,19 @@ Setup
 
 Keep in mind that the Ingress requires a FQDN, please populate this (and update your local hosts file accordingly if this is not a resolvable domain), before applying. 
 
-To complete this, in `example/deploy_demo/roles/demo/files/traefik.sh`, update the following line to reflect your FQDN:
+In `example/deploy_demo/main.yaml`, set the value `fdqn` to a hostname pointing to your Global IPv4 address, which will be returned at the end of the Terraform run for cluster spinup. 
 
 ```
-  48   │ spec:
-  49   │   rules:
-  50   │   - host: your.host.name
+  roles:
+    - { role: demo, fqdn: packet.dev }
 ```
+
+Otherwise, leave as-is, and point `packet.dev` to the Global IPv4 address in your local `/etc/hosts` file to test this application behavior. 
 
 Deploy
 ==
 
-Run `create_inventory.sh` to generate a hosts inventory, and then in the `deploy_demo` Ansible directory, you can apply the apply:
+Run `example/create_inventory.sh` to generate a hosts inventory, and then in the `deploy_demo` Ansible directory, you can apply the apply:
 
 ```
 sh create_inventory.sh

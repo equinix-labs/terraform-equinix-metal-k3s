@@ -47,7 +47,7 @@ metadata:
     kubernetes.io/ingress.class: traefik
 spec:
   rules:
-  - host: YOUR_FQDN_HERE  
+  - host: $HOSTNAME  
     http:
       paths:
       - path: /
