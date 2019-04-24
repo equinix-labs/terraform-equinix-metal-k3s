@@ -1,0 +1,7 @@
+---
+- hosts:
+    - controllers
+  become: true
+  roles:
+    - { role: demo_app, fqdn: packet.dev }
+    - { role: rbac_demo, kube_users: ["user1","user2"] }
