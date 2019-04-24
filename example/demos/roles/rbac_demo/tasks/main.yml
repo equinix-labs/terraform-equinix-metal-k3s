@@ -1,0 +1,61 @@
+---
+- name: Install Pip
+  package:
+    name: python-pip
+    state: present
+- name: Install pyOpenSSL
+  pip:
+    name: pyopenssl
+- name: Creates cert path
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "/etc/ssl/cert"
+    - "/etc/ssl/csr"
+    - "/etc/ssl/private"
+- name: CSR for kube_admin
+  openssl_csr:
+    path: /etc/ssl/csr/kube_admin.csr
+    privatekey_path: /var/lib/rancher/k3s/server/tls/ca.key
+    common_name: kube_admin
+    organization_name: packet-k8s
+- name: CSR for Kubernetes Users
+  openssl_csr:
+    path: "/etc/ssl/csr/{{ item }}.csr"
+    privatekey_path: /var/lib/rancher/k3s/server/tls/ca.key
+    common_name: "{{ item }}"
+    organization_name: packet-k8s
+  with_items: "{{ kube_users }}"
+- name: Generate certificate for kube_admin
+  openssl_certificate:
+    path: /etc/ssl/cert/kube_admin.crt
+    csr_path: /etc/ssl/csr/kube_admin.csr
+    ownca_path: /var/lib/rancher/k3s/server/tls/ca.crt
+    ownca_privatekey_path: /var/lib/rancher/k3s/server/tls/ca.key
+    provider: ownca
+- name: Generate certificate for kube users
+  openssl_certificate:
+    path: "/etc/ssl/cert/{{ item }}.crt"
+    csr_path: "/etc/ssl/csr/{{ item }}.csr"
+    ownca_path: /var/lib/rancher/k3s/server/tls/ca.crt
+    ownca_privatekey_path: /var/lib/rancher/k3s/server/tls/ca.key
+    provider: ownca
+  with_items: "{{ kube_users }}"
+- name: Create kube contexts for users
+  command: kubectl config set-credentials {{ item }}  --client-certificate=/etc/ssl/cert/{{ item }}.crt  --client-key=/var/lib/rancher/k3s/server/tls/ca.key
+  with_items: "{{ kube_users }}"
+- name: Set context
+  command: kubectl config set-context {{ item }}-context --namespace=application --user={{ item }}
+  with_items: "{{ kube_users }}" 
+- name: Roles Creation
+  copy:
+    src: "{{ role_path }}/files/roles.yaml"
+    dest: /var/lib/rancher/k3s/server/manifests/roles.yaml
+- name: Creates Role Binding for kube_users
+  template: 
+    src: templates/binding.yaml.j2
+    dest: /var/lib/rancher/k3s/server/manifests/{{ item }}-binding.yaml
+  vars:
+    user: "{{ item }}"
+  with_items: "{{ kube_users}}"

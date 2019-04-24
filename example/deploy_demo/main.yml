@@ -1,6 +1,0 @@
----
-- hosts:
-    - controllers
-  become: true
-  roles:
-    - { role: demo, fqdn: packet.dev }

@@ -5,5 +5,5 @@
 packet_key
 packet_key.pub
 3-cluster-inventory.tf
-example/deploy_demo/inventory.yaml
-example/deploy_demo/main.retry
+example/demos/inventory.yaml
+example/demos/main.retry
