@@ -3,5 +3,8 @@
     - controllers
   become: true
   roles:
-    - { role: demo_app, fqdn: packet.dev }
-    - { role: rbac_demo, kube_users: ["user1","user2"] }
+# Uncomment to configure demo application, change `fqdn` to your application hostname
+#    - { role: demo_app, fqdn: packet.dev }
+# Uncomment to configure kubernetes user contexts and cluster role binding demonstration...
+# Populate `kube_users` with list of users to configure.
+#    - { role: rbac_demo, kube_users: ["user1","user2"] }
