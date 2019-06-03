@@ -29,7 +29,7 @@ resource "packet_device" "k3s_primary" {
   hostname         = "packet-k3s-${var.cluster_name}-${var.facility}-controller"
   operating_system = "ubuntu_16_04"
   plan             = "${var.plan_primary}"
-  facility         = "${var.facility}"
+  facilities       = ["${var.facility}"]
   user_data        = "${data.template_file.controller.rendered}"
 
   provisioner "local-exec" {
@@ -63,7 +63,7 @@ resource "packet_device" "arm_node" {
   operating_system = "ubuntu_16_04"
   count            = "${var.count}"
   plan             = "${var.plan_node}"
-  facility         = "${var.facility}"
+  facilities       = ["${var.facility}"]
   user_data        = "${data.template_file.node.rendered}"
 
   provisioner "local-exec" {
