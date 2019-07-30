@@ -1,4 +1,4 @@
-variable "count" {}
+variable "node_count" {}
 variable "plan_primary" {}
 variable "plan_node" {}
 variable "facility" {}
@@ -17,7 +17,7 @@ resource "packet_reserved_ip_block" "packet-k3s" {
 data "template_file" "controller" {
   template = "${file("${path.module}/controller.tpl")}"
 
-  vars {
+  vars = {
     packet_network_cidr = "${packet_reserved_ip_block.packet-k3s.cidr_notation}"
     packet_auth_token   = "${var.auth_token}"
     packet_project_id   = "${var.project_id}"
@@ -53,7 +53,7 @@ resource "packet_ip_attachment" "kubernetes_lb_block" {
 data "template_file" "node" {
   template = "${file("${path.module}/node.tpl")}"
 
-  vars {
+  vars = {
     primary_node_ip = "${packet_device.k3s_primary.network.0.address}"
   }
 }
@@ -61,7 +61,7 @@ data "template_file" "node" {
 resource "packet_device" "arm_node" {
   hostname         = "${format("packet-k3s-${var.cluster_name}-${var.facility}-%02d", count.index)}"
   operating_system = "ubuntu_16_04"
-  count            = "${var.count}"
+  count            = "${var.node_count}"
   plan             = "${var.plan_node}"
   facilities       = ["${var.facility}"]
   user_data        = "${data.template_file.node.rendered}"

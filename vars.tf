@@ -25,7 +25,7 @@ variable "plan_node" {
   default     = "baremetal_2a"
 }
 
-variable "count" {
+variable "node_count" {
   default     = "1"
   description = "Number of ARM nodes."
 }
