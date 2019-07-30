@@ -3,7 +3,7 @@ module "cluster_facility" {
   source = "./modules/cluster_pool"
 
   cluster_name         = "primary"
-  count                = "${var.count}"
+  node_count           = "${var.node_count}"
   plan_primary         = "${var.plan_primary}"
   plan_node            = "${var.plan_node}"
   facility             = "${var.facility}"
