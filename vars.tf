@@ -10,9 +10,19 @@ variable "ssh_private_key_path" {
   description = "Your SSH private key path (used locally only)"
 }
 
-variable "facility" {
-  description = "Your primary facility"
-  default     = "nrt1"
+variable "facilities" {
+  type = "map"
+
+  default = {
+    newark  = "ewr1"
+    narita  = "nrt1"
+    sanjose = "sjc1"
+  }
+}
+
+variable "primary_facility" {
+  description = "Central, node-pool attached facility"
+  default     = "newark"
 }
 
 variable "plan_primary" {
