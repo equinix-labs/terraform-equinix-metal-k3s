@@ -1,5 +1,10 @@
+terraform {
+  required_version = ">= 0.12.2"
+}
+
 provider "packet" {
   auth_token = "${var.auth_token}"
+  version    = ">= 2.1.1"
 }
 
 resource "packet_reserved_ip_block" "anycast_ip" {
