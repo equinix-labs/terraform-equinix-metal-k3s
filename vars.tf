@@ -21,7 +21,7 @@ variable "facilities" {
 }
 
 variable "primary_facility" {
-  description = "Central, node-pool attached facility"
+  description = "Core site, node-pool attached facility"
   default     = "newark"
 }
 
