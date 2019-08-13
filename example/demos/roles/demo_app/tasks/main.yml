@@ -8,3 +8,4 @@
   command: sh /root/traefik.sh
   environment:
     HOSTNAME: "{{fqdn}}"
+    ANYCAST_IP: "{{anycast_ip}}"

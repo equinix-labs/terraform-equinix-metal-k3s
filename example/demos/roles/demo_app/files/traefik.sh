@@ -56,4 +56,6 @@ spec:
           servicePort: http
 EOF
 
-kubectl create -f location-app.yaml
+kubectl apply -f location-app.yaml
+
+echo "$ANYCAST_IP $HOSTNAME" | tee -a /etc/hosts
