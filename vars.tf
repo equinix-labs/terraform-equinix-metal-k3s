@@ -11,7 +11,7 @@ variable "ssh_private_key_path" {
 }
 
 variable "facilities" {
-  type = "map"
+  type = map(string)
 
   default = {
     newark  = "ewr1"
