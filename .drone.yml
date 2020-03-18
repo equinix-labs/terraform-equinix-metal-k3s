@@ -3,26 +3,40 @@ name: default
 
 steps:
   
-- name: Deploy
+- name: Deploy K3s
   image: alpine
   environment:
+    PACKET_TOKEN:
+      from_secret: TF_VAR_auth_token
     TF_VAR_auth_token:
       from_secret: TF_VAR_auth_token
-    TF_VAR_count:
-      from_secret: TF_VAR_count
+    TF_VAR_project_id:
+      from_secret: TF_VAR_project_id
     TF_VAR_plan_primary:
       from_secret: TF_VAR_plan_primary
     TF_VAR_plan_node:
       from_secret: TF_VAR_plan_node
-    TF_VAR_facility:
-      from_secret: TF_VAR_facility
   commands:
-  - apk --update add curl
-  - curl --silent --output terraform.zip "https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_amd64.zip"
+  - apk --update add curl openssh-client jq
+  - ssh-keygen -t rsa -b 4096 -C "jmarhee+drone@packet.com" -f drone-key-$DRONE_COMMIT -P ""
+  - PACKET_TOKEN=$PACKET_TOKEN KEY_NAME="$DRONE_COMMIT" PUB_KEY="$(cat drone-key-$DRONE_COMMIT.pub)" sh scripts/test_functions-add.sh
+  - export TF_VAR_ssh_private_key_path=drone-key-$DRONE_COMMIT
+  - export TF_VAR_cluster_name=$DRONE_COMMIT
+  - curl --silent --output terraform.zip "https://releases.hashicorp.com/terraform/0.12.18/terraform_0.12.18_linux_amd64.zip"
   - unzip terraform.zip ; rm -f terraform.zip; chmod +x terraform
   - mkdir -p ${HOME}/bin ; export PATH=${PATH}:${HOME}/bin; mv terraform ${HOME}/bin/
   - terraform -v
   - terraform init 
   - terraform validate
-  - terraform apply -auto-approve
+  - if terraform apply -auto-approve; then echo "Terraform Applied"; else echo "Failed." ; terraform destroy -auto-approve; fi
   - terraform destroy -auto-approve
+
+- name: Clean Up
+  image: python
+  environment:
+    PACKET_TOKEN:
+      from_secret: TF_VAR_auth_token
+  commands:
+  - pip install requests
+  - export KEY_TAG=$DRONE_COMMIT
+  - PACKET_TOKEN=$PACKET_TOKEN KEY_TAG=$KEY_TAG python scripts/test_functions-delete.py

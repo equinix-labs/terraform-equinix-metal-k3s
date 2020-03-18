@@ -1,6 +1,8 @@
 K3s on Packet
 ==
 
+[![Build Status](https://cloud.drone.io/api/badges/packet-labs/packet-k3s/status.svg)](https://cloud.drone.io/packet-labs/packet-k3s)
+
 This is a [Terraform](https://www.terraform.io/docs/providers/packet/index.html) project for deploying [K3s](https://k3s.io) on [Packet](https://packet.com).
 
 This project configures your cluster with:
