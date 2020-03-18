@@ -24,7 +24,6 @@ steps:
   - terraform -v
   - terraform init 
   - terraform validate
-  - export TF_VAR_control_plane_node_count="1"
   - if terraform apply -auto-approve; then echo "Terraform Applied"; else echo "Failed." ; terraform destroy -auto-approve; fi
   - terraform destroy -auto-approve
 
