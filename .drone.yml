@@ -12,6 +12,10 @@ steps:
       from_secret: TF_VAR_auth_token
     TF_VAR_project_id:
       from_secret: TF_VAR_project_id
+    TF_VAR_plan_primary:
+      from_secret: TF_VAR_plan_primary
+    TF_VAR_plan_node:
+      from_secret: TF_VAR_plan_node
   commands:
   - apk --update add curl openssh-client jq
   - ssh-keygen -t rsa -b 4096 -C "jmarhee+drone@packet.com" -f drone-key-$DRONE_COMMIT -P ""
