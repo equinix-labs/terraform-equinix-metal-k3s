@@ -18,7 +18,7 @@ steps:
   - PACKET_TOKEN=$PACKET_TOKEN KEY_NAME="$DRONE_COMMIT" PUB_KEY="$(cat drone-key-$DRONE_COMMIT.pub)" sh scripts/test_functions-add.sh
   - export TF_VAR_ssh_private_key_path=drone-key-$DRONE_COMMIT
   - export TF_VAR_cluster_name=$DRONE_COMMIT
-  - curl --silent --output terraform.zip "https://releases.hashicorp.com/terraform/0.12.2/terraform_0.12.18_linux_amd64.zip"
+  - curl --silent --output terraform.zip "https://releases.hashicorp.com/terraform/0.12.18/terraform_0.12.18_linux_amd64.zip"
   - unzip terraform.zip ; rm -f terraform.zip; chmod +x terraform
   - mkdir -p ${HOME}/bin ; export PATH=${PATH}:${HOME}/bin; mv terraform ${HOME}/bin/
   - terraform -v
