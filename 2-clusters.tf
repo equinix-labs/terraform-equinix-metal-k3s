@@ -1,7 +1,7 @@
 module "cluster_facility" {
   source = "./modules/cluster_pool"
 
-  cluster_name         = "primary"
+  cluster_name         = var.cluster_name
   node_count           = var.node_count
   plan_primary         = var.plan_primary
   plan_node            = var.plan_node
