@@ -39,3 +39,8 @@ variable "node_count" {
   default     = "1"
   description = "Number of ARM nodes."
 }
+
+variable "cluster_name" {
+  default = "packet-k3s"
+  description = "The cluster project name, will prepend hostnames"
+}

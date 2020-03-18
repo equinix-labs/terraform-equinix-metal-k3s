@@ -1,7 +1,8 @@
 #!/bin/bash
 
 function configure_kube() {
-	curl -sfL https://get.k3s.io | sh - 
+#	curl -sfL https://get.k3s.io | sh - 
+       curl -sfL https://get.k3s.io | K3S_URL=https://${primary_node_ip}:6443 K3S_TOKEN="$(cat /root/node-token)" sh -
 }
 
 function join_cluster {
@@ -24,7 +25,8 @@ function node_token {
 }
 
 sleep 180 ; \
-configure_kube ; \
+#configure_kube ; \
 node_token ; \
-echo "Joining cluster ${primary_node_ip} with token: $(cat /root/node-token)" ; \
-join_cluster
+configure_kube #; \
+#echo "Joining cluster ${primary_node_ip} with token: $(cat /root/node-token)" ; \
+#join_cluster
