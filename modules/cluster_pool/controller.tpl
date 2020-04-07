@@ -16,6 +16,9 @@ function check_cluster {
 }
 
 function metal_lb {
+    k3s kubectl apply -f https://raw.githubusercontent.com/google/metallb/v0.9.3/manifests/namespace.yaml && \
+    k3s kubectl apply -f https://raw.githubusercontent.com/google/metallb/v0.9.3/manifests/metallb.yaml && \
+    k3s kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)" && \
     echo "Configuring MetalLB for ${packet_network_cidr}..." && \
     cat << EOF > /var/lib/rancher/k3s/server/manifests/metal_lb.yaml
 apiVersion: v1
@@ -56,8 +59,7 @@ function apply_workloads {
 	cd /var/lib/rancher/k3s/server/manifests && \
         wget https://raw.githubusercontent.com/packethost/csi-packet/master/deploy/kubernetes/setup.yaml && \
         wget https://raw.githubusercontent.com/packethost/csi-packet/master/deploy/kubernetes/node.yaml && \
-        wget https://raw.githubusercontent.com/packethost/csi-packet/master/deploy/kubernetes/controller.yaml && \ 
-        wget https://raw.githubusercontent.com/google/metallb/v0.7.3/manifests/metallb.yaml
+        wget https://raw.githubusercontent.com/packethost/csi-packet/master/deploy/kubernetes/controller.yaml
 }
 
 function start_anycast {
