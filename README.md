@@ -66,7 +66,7 @@ by adding a line such as:
 
 <h3>Manually defining a Cluster, or adding a new cluster pool</h3>
 
-To create a cluster manually, in `3-cluster-inventory.tf` (this is ignored by git--your initial cluster setup is in `2-clusters.tf`, and is tracked), instantiate a new `cluster_pool` module:
+To create a cluster manually, in `cluster-inventory.tf` (this is ignored by git--your initial cluster setup is in `clusters.tf`, and is tracked), instantiate a new `cluster_pool` module:
 
 ```
 module "manual_cluster" {
