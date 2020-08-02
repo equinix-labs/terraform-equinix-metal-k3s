@@ -2,8 +2,17 @@ K3s on Packet
 ==
 
 [![Build Status](https://cloud.drone.io/api/badges/packet-labs/packet-k3s/status.svg)](https://cloud.drone.io/packet-labs/packet-k3s)
+[![GitHub release](https://img.shields.io/github/release/packet-labs/terraform-packet-k3s/all.svg?style=flat-square)](https://github.com/packet-labs/terraform-packet-k3s/releases)
+[![Slack](https://slack.packet.com/badge.svg)](https://slack.packet.com)
+[![Twitter Follow](https://img.shields.io/twitter/follow/packethost.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=packethost)
 
 This is a [Terraform](https://www.terraform.io/docs/providers/packet/index.html) project for deploying [K3s](https://k3s.io) on [Packet](https://packet.com).
+
+New projects can build on this [Packet K3s Terraform Registry module](https://registry.terraform.io/modules/packet-labs/k3s/packet/) with:
+
+```sh
+terraform init --from-module=packet/k3s/packet packet-k3s
+```
 
 This project configures your cluster with:
 
@@ -57,7 +66,7 @@ by adding a line such as:
 
 <h3>Manually defining a Cluster, or adding a new cluster pool</h3>
 
-To create a cluster manually, in `3-cluster-inventory.tf` (this is ignored by git--your initial cluster setup is in `2-clusters.tf`, and is tracked), instantiate a new `cluster_pool` module:
+To create a cluster manually, in `cluster-inventory.tf` (this is ignored by git--your initial cluster setup is in `clusters.tf`, and is tracked), instantiate a new `cluster_pool` module:
 
 ```
 module "manual_cluster" {
