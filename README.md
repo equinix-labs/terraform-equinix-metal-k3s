@@ -5,6 +5,7 @@ K3s on Packet
 [![GitHub release](https://img.shields.io/github/release/packet-labs/terraform-packet-k3s/all.svg?style=flat-square)](https://github.com/packet-labs/terraform-packet-k3s/releases)
 [![Slack](https://slack.packet.com/badge.svg)](https://slack.packet.com)
 [![Twitter Follow](https://img.shields.io/twitter/follow/packethost.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=packethost)
+![](https://img.shields.io/badge/Stability-Experimental-red.svg)
 
 This is a [Terraform](https://www.terraform.io/docs/providers/packet/index.html) project for deploying [K3s](https://k3s.io) on [Packet](https://packet.com).
 
@@ -22,6 +23,8 @@ This project configures your cluster with:
 on ARM devices.
 
 This is intended to allow you to quickly spin-up and down K3s clusters in edge locations. 
+
+This repository is [Experimental](https://github.com/packethost/standards/blob/master/experimental-statement.md) meaning that it's based on untested ideas or techniques and not yet established or finalized or involves a radically new and innovative style! This means that support is best effort (at best!) and we strongly encourage you to NOT use this in production.
 
 Requirements
 -
