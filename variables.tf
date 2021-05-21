@@ -1,12 +1,16 @@
 variable "auth_token" {
-  description = "Your Packet API key"
+  type        = string
+  sensitive   = true
+  description = "Your Equinix Metal API key"
 }
 
 variable "project_id" {
-  description = "Your Packet Project ID"
+  type        = string
+  description = "Your Equinix Metal Project ID"
 }
 
 variable "ssh_private_key_path" {
+  type        = string
   description = "Your SSH private key path (used locally only)"
 }
 
@@ -21,26 +25,31 @@ variable "facilities" {
 }
 
 variable "primary_facility" {
+  type        = string
   description = "Core site, node-pool attached facility"
   default     = "newark"
 }
 
 variable "plan_primary" {
+  type        = string
   description = "Plan for ARM Nodes"
-  default     = "baremetal_2a"
+  default     = "c3.small"
 }
 
 variable "plan_node" {
+  type        = string
   description = "Plan for ARM Nodes"
-  default     = "baremetal_2a"
+  default     = "c3.small"
 }
 
 variable "node_count" {
+  type        = number
   default     = "1"
   description = "Number of ARM nodes."
 }
 
 variable "cluster_name" {
-  default = "packet-k3s"
+  type        = string
+  default     = "metal-k3s"
   description = "The cluster project name, will prepend hostnames"
 }
