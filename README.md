@@ -17,7 +17,6 @@ terraform init --from-module=equinix/k3s/metal metal-k3s
 This project configures your cluster with:
 
 - [MetalLB](https://metallb.universe.tf/) using Equinix Metal elastic IPs.
-- [Equinix Metal CSI](https://github.com/packethost/csi-packet) storage driver.
 
 on ARM devices.
 
