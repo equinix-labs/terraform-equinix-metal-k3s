@@ -3,7 +3,7 @@ Anycast IP Demo on Packet K3s
 
 The purpose of this project is to demonstrate multiple regions responding to your request from your distributed network of K3s clusters through the use of Packet's network automation tooling.  
 
-To be used in conjunction with the [Packet K3s](https://github.com/packet-labs/packet-k3s) project; this application just returns the node IP and location serving the request to demonstrate the global distribution of the backing clusters' ability to serve traffic in a highly-available, distributed manner. 
+To be used in conjunction with the [Packet K3s](https://github.com/equinix/terraform-metal-k3s) project; this application just returns the node IP and location serving the request to demonstrate the global distribution of the backing clusters' ability to serve traffic in a highly-available, distributed manner. 
 
 In the K3s repository, a subnet is provisioned for use by Kubernetes services, which will be your Fission endpoint:
 
@@ -14,7 +14,7 @@ Packet Anycast Application
 
 Using Packet's Global IPv4, we can create highly-available anycast IP addresses, that we can use our K3s cluster controllers to back up (and thus, serve that region's traffic from). 
 
-Please ensure [Local BGP is enabled in your Packet project](https://support.packet.com/kb/articles/global-anycast-ips), and make note of the project ID for use with [Packet K3s](github.com/packet-labs/packet-k3s).
+Please ensure [Local BGP is enabled in your Packet project](https://support.packet.com/kb/articles/global-anycast-ips), and make note of the project ID for use with [Packet K3s](github.com/equinix/terraform-metal-k3s).
 
 Setup
 ==

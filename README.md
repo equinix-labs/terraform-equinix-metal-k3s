@@ -1,18 +1,18 @@
 K3s on Packet
 ==
 
-[![Build Status](https://cloud.drone.io/api/badges/packet-labs/packet-k3s/status.svg)](https://cloud.drone.io/packet-labs/packet-k3s)
-[![GitHub release](https://img.shields.io/github/release/packet-labs/terraform-packet-k3s/all.svg?style=flat-square)](https://github.com/packet-labs/terraform-packet-k3s/releases)
+[![Build Status](https://cloud.drone.io/api/badges/equinix/terraform-metal-k3s/status.svg)](https://cloud.drone.io/equinix/terraform-metal-k3s)
+[![GitHub release](https://img.shields.io/github/release/equinix/terraform-metal-k3s/all.svg?style=flat-square)](https://github.com/equinix/terraform-metal-k3s/releases)
 [![Slack](https://slack.packet.com/badge.svg)](https://slack.packet.com)
 [![Twitter Follow](https://img.shields.io/twitter/follow/packethost.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=packethost)
 ![](https://img.shields.io/badge/Stability-Experimental-red.svg)
 
 This is a [Terraform](https://www.terraform.io/docs/providers/packet/index.html) project for deploying [K3s](https://k3s.io) on [Packet](https://packet.com).
 
-New projects can build on this [Packet K3s Terraform Registry module](https://registry.terraform.io/modules/packet-labs/k3s/packet/) with:
+New projects can build on this [Packet K3s Terraform Registry module](https://registry.terraform.io/modules/equinix/k3s/metal/) with:
 
 ```sh
-terraform init --from-module=packet/k3s/packet packet-k3s
+terraform init --from-module=equinix/k3s/metal metal-k3s
 ```
 
 This project configures your cluster with:
