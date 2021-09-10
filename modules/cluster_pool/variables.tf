@@ -1,0 +1,10 @@
+variable "node_count" {}
+variable "plan_primary" {}
+variable "plan_node" {}
+variable "facilities" {}
+variable "auth_token" {}
+variable "project_id" {}
+variable "cluster_name" {}
+variable "ssh_private_key_path" {}
+variable "anycast_ip" {}
+variable "primary_facility" {}
