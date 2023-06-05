@@ -41,13 +41,6 @@ variable "os" {
   default     = "debian_11"
 }
 
-# tflint-ignore: terraform_unused_declarations
-variable "metal_auth_token" {
-  type        = string
-  sensitive   = true
-  description = "Your Equinix Metal API key"
-}
-
 variable "metal_project_id" {
   type        = string
   description = "Your Equinix Metal Project ID"

@@ -16,7 +16,6 @@ module "k3s_cluster" {
   k3s_version             = each.value.k3s_version
   metallb_version         = each.value.metallb_version
   ip_pool_count           = each.value.ip_pool_count
-  metal_auth_token        = var.metal_auth_token
   metal_project_id        = var.metal_project_id
   deploy_demo             = var.deploy_demo
   global_ip_cidr          = local.global_ip_cidr
