@@ -1,102 +1,355 @@
 # K3s on Equinix Metal
 
-[![Build Status](https://cloud.drone.io/api/badges/equinix/terraform-metal-k3s/status.svg)](https://cloud.drone.io/equinix/terraform-metal-k3s)
 [![GitHub release](https://img.shields.io/github/release/equinix/terraform-metal-k3s/all.svg?style=flat-square)](https://github.com/equinix/terraform-metal-k3s/releases)
 [![Slack](https://slack.equinixmetal.com/badge.svg)](https://slack.equinixmetal.com)
 [![Twitter Follow](https://img.shields.io/twitter/follow/equinixmetal.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=equinixmetal)
 ![](https://img.shields.io/badge/Stability-Experimental-red.svg)
 
-This is a [Terraform](hhttps://registry.terraform.io/providers/equinix/metal/latest/docs) project for deploying [K3s](https://k3s.io) on [Equinix Metal](https://metal.equinix.com).
+## Table of content
 
-New projects can build on this [Equinix Metal K3s Terraform Registry module](https://registry.terraform.io/modules/equinix/k3s/metal/) with:
+<details><summary>Table of content</summary><p>
 
-```sh
-terraform init --from-module=equinix/k3s/metal metal-k3s
-```
+  * [Introduction](#introduction)
+  * [Prerequisites](#prerequisites)
+  * [Variable requirements](#variable-requirements)
+  * [Demo application](#demo-application)
+  * [Notes](#notes)
+  * [Example scenarios](#example-scenarios)
+    * [Single node in default Metro](#single-node-in-default-metros)
+    * [Single node in 2 different Metros](#single-node-in-2-different-metros)
+    * [1 x HA cluster with 3 nodes & 4 public IPs + 2 x Single Node cluster (same Metro), a Global IPV4 and the demo app deployed](#1-x-ha-cluster-with-3-nodes--4-public-ips--2-x-single-node-cluster-same-metro-a-global-ipv4-and-the-demo-app-deployed)
+  * [Usage](#usage)
+  * [Accessing the clusters](#accessing-the-clusters)
+  * [Terraform module documentation](#terraform-module-documentation)
+    * [Requirements](#requirements-1)
+    * [Providers](#providers)
+    * [Modules](#modules)
+    * [Resources](#resources)
+    * [Inputs](#inputs)
+    * [Outputs](#outputs)
+  * [Contributing](#contributing)
+  * [License](#license)
 
-This project configures your cluster with:
+</p></details>
 
-- [MetalLB](https://metallb.universe.tf/) using Equinix Metal elastic IPs.
+## Introduction
 
-on ARM devices.
+This is a [Terraform](hhttps://registry.terraform.io/providers/equinix/metal/latest/docs) project for deploying [K3s](https://k3s.io) on [Equinix Metal](https://metal.equinix.com) intended to allow you to quickly spin-up and down K3s clusters.
 
-This is intended to allow you to quickly spin-up and down K3s clusters in edge locations.
+[K3s](https://docs.k3s.io/) is a fully compliant and lightweight Kubernetes distribution focused on Edge, IoT, ARM or just for situations where a PhD in K8s clusterology is infeasible.
 
-This repository is [Experimental](https://github.com/packethost/standards/blob/master/experimental-statement.md) meaning that it's based on untested ideas or techniques and not yet established or finalized or involves a radically new and innovative style! This means that support is best effort (at best!) and we strongly encourage you to NOT use this in production.
+> :warning: This repository is [Experimental](https://github.com/packethost/standards/blob/master/experimental-statement.md) meaning that it's based on untested ideas or techniques and not yet established or finalized or involves a radically new and innovative style! This means that support is best effort (at best!) and we strongly encourage you to NOT use this in production.
 
-## Requirements
+This terraform project supports a wide variety of scenarios and mostly focused on Edge, such as:
 
-The only required variables are `auth_token` (your [Equinix Metal API](https://metal.equinix.com/developers/api/#) key), your Equinix Metal `project_id`, `facility`, and `count` (number of ARM nodes in the cluster, not counting the controller, which is always set to `1`--if you wish to only run the controller, and its local node, set this value to `0`).
+* Single node K3s cluster on a single Equinix Metal Metro.
+* HA K3s cluster (3 control plane nodes) using BGP to provide an HA K3s API entrypoint.
+* Any number of worker nodes (both for single node or HA scenarios).
+* Any number of public IPv4s to be used to expose services to the outside using `LoadBalancer` services via [MetalLB](https://metallb.universe.tf/) (deployed automatically).
+* All those previous scenarios but deploying multiple clusters on multiple Equinix Metal metros.
+* A Global IPv4 that is shared in all cluster among all Equnix Metal Metros and can be used to expose an example application to demonstrate load balancing between different Equinix Metal Metros.
 
-In addition to Terraform, your client machine (where Terraform will be run from) will need [`curl`](https://curl.haxx.se/download.html), and [`jq`](https://stedolan.github.io/jq/download/) available in order for all of the automation to run as expected.
+More on that later.
 
-You will need an SSH key associated with this project, or your account. Add the identity path to `ssh_private_key`--this will only be used _locally_ to assist Terraform in completing cluster bootstrapping (needed to retrieve the cluster node-token from the controller node).
+## Prerequisites
 
-BGP will need to be enabled for your project.
+* An [Equinix Metal account](https://deploy.equinix.com/get-started/)
+  <details><summary>Show more details</summary><p>
+  An Equinix Metal account needs to be created. You can sign up for free (credit card required).
+  </p></details>
+* An [Equinix Metal project](https://deploy.equinix.com/developers/docs/metal/accounts/projects/)
+  <details><summary>Show more details</summary><p>
+  Equinix Metal is organized in Projects. They can be created either via the Web UI, via the CLI or the API. Check the above link for instructions on how to create it.
+  </p></details>
+* An [Equinx Metal API Key](https://deploy.equinix.com/developers/docs/metal/accounts/api-keys/)
+  <details><summary>Show more details</summary><p>
+  In order to be able to interact with the Equinix Metal API, an API Key is needed. Check the above link for instructions on how to get it.
+  For this project to work, the API Key requires write permissions.
+  </p></details>
+* [BGP](https://deploy.equinix.com/developers/docs/metal/bgp/local-bgp/) enabled in the project.
+  <details><summary>Show more details</summary><p>
+  Equinix Metal supports Local BGP for advertising routes to your Equinix Metal servers in a local environment, and this will be used to provide a single entrypoint for the K3s API in HA deployments as well as to provide `LoadBalancer` services using MetalLB. Check the above link for instructions on how to enable it.
+  </p></details>
+* An [SSH Key](https://deploy.equinix.com/developers/docs/metal/accounts/ssh-keys/) configured.
+  <details><summary>Show more details</summary><p>
+  Having a SSH in your account or project makes the provision procedure to inject it automatically in the host being provisioned, so you can ssh into it. They can be created either via the Web UI, via the CLI or the API, check the above link for instructions on how to get it.
+  </p></details>
+* [Terraform](https://developer.hashicorp.com/terraform/downloads?product_intent=terraform)
+  <details><summary>Show more details</summary><p>
+  Terraform is just a single binary. Visit their download page, choose your operating system, make the binary executable, and move it into your path.
+  </p></details>
+* [git](https://git-scm.com/) to download the content of this repository
 
-## Clusters
+> :warning: Before creating the assets, verify there is enough amount of servers in the chosen Metros by visiting the [Capacity Dashboard](https://deploy.equinix.com/developers/capacity-dashboard/). See more about the inventory and capacity [in the official documentation](https://deploy.equinix.com/developers/docs/metal/locations/capacity/)
 
-<h3>Generating a Cluster Template</h3>
+## Variable requirements
 
-To ensure all your regions have standardized deployments, in your Terraform variables (`TF_VAR_varname` or in `terraform.tfvars`), ensure that you have set `count` (number of nodes per cluster), `plan_primary`, and `plan_node`. This will apply to **all** clusters managed by this project.
+There is a lot of flexibility in the module to allow customization of the different scenarios. There can be as many cluster with different topologies as wanted but mainly:
 
-To add new clusters to a cluster pool, add the new facility to the `facilities` map:
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_metal_auth_token"></a> [metal\_auth\_token](#input\_metal\_auth\_token) | Your Equinix Metal API key | `string` | n/a | yes |
+| <a name="input_metal_project_id"></a> [metal\_project\_id](#input\_metal\_project\_id) | Your Equinix Metal Project ID | `string` | n/a | yes |
+| <a name="input_clusters"></a> [clusters](#input\_clusters) | K3s cluster definition | `list of K3s cluster objects` | n/a | yes |
 
-```
-variable "facilities" {
-  type = "map"
+For more details on the variables, see the [Terraform module documentation](#terraform-module-documentation) section.
 
-  default = {
-    newark  = "ewr1"
-    narita  = "nrt1"
-    sanjose = "sjc1"
+The default variables are set to deploy a single node K3s cluster in the FR Metro, using a Equinix Metal's c3.small.x86. You just need to add the cluster name as:
+
+```bash
+metal_auth_token = "redacted"
+metal_project_id = "redacted"
+clusters         = [
+  {
+    name = "FR DEV Cluster"
   }
+]
+```
+
+Change each default variable at your own risk, see [Example scenarios](#example-scenarios) and the [K3s module README.md file](modules/k3s_cluster/README.md) for more details.
+
+> :warning: The hostnames are created based on the Cluster Name and the `control_plane_hostnames` & `node_hostnames` variables (normalized), beware the lenght of those variables.
+
+You can create a [terraform.tfvars](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files) file with the appropiate content or use the [`TF_VAR_` environment variables](https://developer.hashicorp.com/terraform/language/values/variables#environment-variables).
+
+> :warning: The only OS that has been tested is Debian 11.
+
+## Demo application
+
+If enabled (`deploy_demo = true`), a demo application ([hello-kubernetes](https://github.com/paulbouwer/hello-kubernetes)) will be deployed on all the clusters. The Global IPv4 will be used by the [K3s Traefik Ingress Controller](https://docs.k3s.io/networking#traefik-ingress-controller) to expose that application and the load will be spreaded among all the clusters. This means that different requests will be routed to different clusters. See [the MetalLB documentation](https://metallb.universe.tf/concepts/bgp/#load-balancing-behavior) for more information about how BGP load balancing works.
+
+## Example scenarios
+
+### Single node in default Metro
+
+```bash
+metal_auth_token = "redacted"
+metal_project_id = "redacted"
+clusters         = [
+  {
+    name = "FR DEV Cluster"
+  }
+]
+```
+
+This will produce something similar to:
+
+```bash
+Outputs:
+
+k3s_api = {
+  "FR DEV Cluster" = "145.40.94.83"
 }
 ```
 
-by adding a line such as:
+### Single node in 2 different Metros
 
+```bash
+metal_auth_token = "redacted"
+metal_project_id = "redacted"
+clusters         = [
+  {
+    name = "FR DEV Cluster"
+  },
+  {
+    name = "SV DEV Cluster"
+    metro = "SV"
+  }
+]
 ```
+
+This will produce something similar to:
+
+```bash
+Outputs:
+
+k3s_api = {
+  "FR DEV Cluster" = "145.40.94.83",
+  "SV DEV Cluster" = "86.109.11.205"
+}
+```
+
+### 1 x HA cluster with 3 nodes & 4 public IPs + 2 x Single Node cluster (same Metro), a Global IPV4 and the demo app deployed
+
+```bash
+metal_auth_token = "redacted"
+metal_project_id = "redacted"
+clusters = [{
+  name = "SV Production"
+  ip_pool_count = 4
+  k3s_ha = true
+  metro = "SV"
+  node_count = 3
+},
+{
+  name = "FR Dev 1"
+  metro = "FR"
+},
+{
+  name = "FR Dev 2"
+  metro = "FR"
+}
+]
+
+global_ip        = true
+deploy_demo      = true
+```
+
+This will produce something similar to:
+
+```bash
+Outputs:
+
+anycast_ip = "147.75.40.52"
+demo_url   = "http://hellok3s.147.75.40.52.sslip.io"
+k3s_api = {
+  "FR Dev 1" = "145.40.94.83",
+  "FR Dev 2" = "147.75.192.250",
+  "SV Production" = "86.109.11.205"
+}
+```
+
+## Usage
+
+* Download the repository:
+
+```bash
+git clone https://github.com/equinix/terraform-metal-k3s.git
+cd terraform-metal-k3s
+```
+
+* Initialize terraform:
+
+```bash
+terraform init -upgrade
+```
+
+* Optionally, configure a proper backend to [store the Terraform state file](https://spacelift.io/blog/terraform-state)
+
+* Modify your variables. Depending on the scenario, some variables are needed and some others are optional but let you customize the scenario as wanted.
+
+* Review the deployment before submitting it with `terraform plan` (or using environment variables) as:
+
+```bash
+terraform plan -var-file="foobar.tfvars"
+```
+
+* Deploy it
+
+```bash
+terraform apply -var-file="foobar.tfvars" --auto-approve
+```
+
+* Profit!
+
+The output will show the required IPs or hostnames to use the clusters:
+
+```bash
 ...
- chicago = "ord1"
-   }
+Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+k3s_api = {
+  "FR example" = "145.40.94.83"
 }
 ```
 
-<h3>Manually defining a Cluster, or adding a new cluster pool</h3>
+## Accessing the clusters
 
-To create a cluster manually, in `cluster-inventory.tf` (this is ignored by git--your initial cluster setup is in `clusters.tf`, and is tracked), instantiate a new `cluster_pool` module:
+As the SSH key for the project has been injected, the clusters can be accessed as:
 
-```hcl-terraform
-module "manual_cluster" {
-  source = "./modules/cluster_pool"
+```bash
+(
+IFS=$'\n'
+for cluster in $(terraform output -json | jq -r ".k3s_api.type[1] | keys[]"); do
+  IP=$(terraform output -json | jq -r ".k3s_api.value[\"${cluster}\"]")
+  ssh root@${IP} kubectl get nodes
+done
+)
 
-  cluster_name         = "manual_cluster"
-  node_count           = var.node_count
-  plan_primary         = var.plan_primary
-  plan_node            = var.plan_node
-  facilities           = var.facilities
-  primary_facility     = var.primary_facility
-  auth_token           = var.auth_token
-  project_id           = var.project_id
-  ssh_private_key_path = var.ssh_private_key_path
-  anycast_ip           = metal_reserved_ip_block.anycast_ip.address
-}
+NAME         STATUS   ROLES                  AGE   VERSION
+ny-k3s-aio   Ready    control-plane,master   9m35s v1.26.5+k3s1
+NAME         STATUS   ROLES                  AGE   VERSION
+sv-k3s-aio   Ready    control-plane,master   10m   v1.26.5+k3s
 ```
 
-This creates a single-controller cluster, with `count` number of agent nodes for each `facility` in the `facilities` map.
+To access from outside, the K3s kubeconfig file can be copied to any host and replace the `server` field with the IP of the K3s API:
 
-<h3>Demo Project</h3>
+```bash
+(
+IFS=$'\n'
+for cluster in $(terraform output -json | jq -r ".k3s_api.type[1] | keys[]"); do
+  IP=$(terraform output -json | jq -r ".k3s_api.value[\"${cluster}\"]")
+  export KUBECONFIG="./$(echo ${cluster}| tr -c -s '[:alnum:]' '-')-kubeconfig"
+  scp root@${IP}:/etc/rancher/k3s/k3s.yaml ${KUBECONFIG}
+  sed -i "s/127.0.0.1/${IP}/g" ${KUBECONFIG}
+  chmod 600 ${KUBECONFIG}
+  kubectl get nodes
+done
+)
 
-In `example/`, there are files to configure and deploy a demo project that, once your request is received, returns the IP of the cluster serving your request to demonstrate the use of Equinix Metal's Global IPv4 addresses to distribute traffic globally to your edge cluster deployments.
-
-To run the project, you can run the `deploy_demo` Ansible project by running the `create_inventory.sh` script to gather your cluster controller IPs into your inventory for Ansible:
-
+NAME         STATUS   ROLES                  AGE     VERSION
+ny-k3s-aio   Ready    control-plane,master   8m41s   v1.26.5+k3s1
+NAME         STATUS   ROLES                  AGE     VERSION
+sv-k3s-aio   Ready    control-plane,master   9m20s   v1.26.5+k3s1
 ```
-cd example/
-sh create_inventory.sh
-cd deploy_demo
-ansible-playbook -i inventory.yaml main.yml
-```
 
-or manually copy `example/deploy_demo/roles/demo/files/traefik.sh` to your `kubectl` client machine and run manually to deploy Traefik and the application.
+> :warning: OSX sed is different, it needs to be used as `sed -i "" "s/127.0.0.1/${IP}/g" ${KUBECONFIG}` instead.
+
+## Terraform module documentation
+
+<!-- TEMPLATE: The following block has been generated by terraform-docs util: https://github.com/terraform-docs/terraform-docs -->
+<!-- BEGIN_TF_DOCS -->
+### Requirements
+
+| Name | Version |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
+| <a name="requirement_equinix"></a> [equinix](#requirement\_equinix) | >= 1.14.2 |
+
+### Providers
+
+| Name | Version |
+|------|---------|
+| <a name="provider_equinix"></a> [equinix](#provider\_equinix) | 1.14.2 |
+
+### Modules
+
+| Name | Source | Version |
+|------|--------|---------|
+| <a name="module_k3s_cluster"></a> [k3s\_cluster](#module\_k3s\_cluster) | ./modules/k3s_cluster | n/a |
+
+### Resources
+
+| Name | Type |
+|------|------|
+| [equinix_metal_reserved_ip_block.global_ip](https://registry.terraform.io/providers/equinix/equinix/latest/docs/resources/metal_reserved_ip_block) | resource |
+
+### Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_clusters"></a> [clusters](#input\_clusters) | K3s cluster definition | <pre>list(object({<br>    name                    = optional(string, "K3s demo cluster")<br>    metro                   = optional(string, "FR")<br>    plan_control_plane      = optional(string, "c3.small.x86")<br>    plan_node               = optional(string, "c3.small.x86")<br>    node_count              = optional(number, 0)<br>    k3s_ha                  = optional(bool, false)<br>    os                      = optional(string, "debian_11")<br>    control_plane_hostnames = optional(string, "k3s-cp")<br>    node_hostnames          = optional(string, "k3s-node")<br>    custom_k3s_token        = optional(string, "")<br>    ip_pool_count           = optional(number, 0)<br>    k3s_version             = optional(string, "")<br>    metallb_version         = optional(string, "")<br>  }))</pre> | n/a | yes |
+| <a name="input_deploy_demo"></a> [deploy\_demo](#input\_deploy\_demo) | Deploys a simple demo using a global IP as ingress and a hello-kubernetes pods | `bool` | `false` | no |
+| <a name="input_global_ip"></a> [global\_ip](#input\_global\_ip) | Enables a global anycast IPv4 that will be shared for all clusters in all metros | `bool` | `false` | no |
+| <a name="input_metal_auth_token"></a> [metal\_auth\_token](#input\_metal\_auth\_token) | Your Equinix Metal API key | `string` | n/a | yes |
+| <a name="input_metal_project_id"></a> [metal\_project\_id](#input\_metal\_project\_id) | Your Equinix Metal Project ID | `string` | n/a | yes |
+
+### Outputs
+
+| Name | Description |
+|------|-------------|
+| <a name="output_anycast_ip"></a> [anycast\_ip](#output\_anycast\_ip) | Global IP shared across Metros |
+| <a name="output_demo_url"></a> [demo\_url](#output\_demo\_url) | URL of the demo application to demonstrate a global IP shared across Metros |
+| <a name="output_k3s_api"></a> [k3s\_api](#output\_k3s\_api) | n/a |
+
+<!-- END_TF_DOCS -->
+
+## Contributing
+
+If you would like to contribute to this module, see [CONTRIBUTING](CONTRIBUTING.md) page.
+
+## License
+
+Apache License, Version 2.0. See [LICENSE](LICENSE).
