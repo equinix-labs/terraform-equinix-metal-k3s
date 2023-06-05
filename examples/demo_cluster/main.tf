@@ -11,7 +11,3 @@ module "demo" {
   deploy_demo      = var.deploy_demo
   clusters         = var.clusters
 }
-
-output "demo_cluster" {
-  value = module.demo
-}
