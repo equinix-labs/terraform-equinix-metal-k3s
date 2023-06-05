@@ -1,3 +1,9 @@
+variable "metal_auth_token" {
+  type        = string
+  sensitive   = true
+  description = "Your Equinix Metal API key"
+}
+
 variable "metal_project_id" {
   type        = string
   description = "Your Equinix Metal Project ID"
@@ -6,13 +12,13 @@ variable "metal_project_id" {
 variable "global_ip" {
   type        = bool
   description = "Enables a global anycast IPv4 that will be shared for all clusters in all metros"
-  default     = false
+  default     = true
 }
 
 variable "deploy_demo" {
   type        = bool
   description = "Deploys a simple demo using a global IP as ingress and a hello-kubernetes pods"
-  default     = false
+  default     = true
 }
 
 variable "clusters" {

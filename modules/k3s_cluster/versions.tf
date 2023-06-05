@@ -5,8 +5,9 @@ terraform {
       source  = "equinix/equinix"
       version = ">= 1.14.2"
     }
-  }
-  provider_meta "equinix" {
-    module_name = "equinix/k3s"
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.5.1"
+    }
   }
 }

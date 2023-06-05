@@ -1,3 +1,16 @@
-output "Kubernetes_Cluster_Info" {
-  value = "Changes applied, your Anycast IP, ${metal_reserved_ip_block.anycast_ip.address}, is provisioned, and you can validate BGP status here:\n\n\thttps://console.equinix.com/projects/${var.project_id}/network/bgp"
+output "anycast_ip" {
+  value       = var.global_ip ? equinix_metal_reserved_ip_block.global_ip[0].address : null
+  description = "Global IP shared across Metros"
+}
+
+output "demo_url" {
+  value       = var.deploy_demo ? "http://hellok3s.${equinix_metal_reserved_ip_block.global_ip[0].address}.sslip.io" : null
+  description = "URL of the demo application to demonstrate a global IP shared across Metros"
+}
+
+output "k3s_api" {
+  value = {
+    for cluster in var.clusters : cluster.name => module.k3s_cluster[cluster.name].k3s_api_ip
+  }
+  description = "List of Clusters => K3s APIs"
 }

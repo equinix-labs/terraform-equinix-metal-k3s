@@ -6,7 +6,4 @@ terraform {
       version = ">= 1.14.2"
     }
   }
-  provider_meta "equinix" {
-    module_name = "equinix/k3s"
-  }
 }

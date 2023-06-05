@@ -1,9 +1,52 @@
-.terraform/*
+# OSX leaves these everywhere on SMB shares
+._*
+
+# OSX trash
+**/.DS_Store
+*.pyc*
+
+# Emacs save files
+*~
+\#*\#
+.\#*
+
+# Vim-related files
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*.un~
+Session.vim
+.netrwhist
+
+# Local .terraform directories
+**/.terraform/*
+**/*/.terraform/*
+.terraform*
+
+# .tfstate files
 *.tfstate
-*.tfstate.backup
+*.tfstate.*
+
+.terraform.lock.hcl
+
+# Crash log files
+crash.log
+
+# Ignore any .tfvars files that are generated automatically for each Terraform run. Most
+# .tfvars files are managed as part of configuration and so should be included in
+# version control.
+#
 *.tfvars
-packet_key
-packet_key.pub
-cluster-inventory.tf
-example/demos/inventory.yaml
-example/demos/main.retry
+
+# Ignore override files as they are usually used to override resources locally and so
+# are not checked in
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Include tfplan files to ignore the plan output of command: terraform plan -out=tfplan
+# example: *tfplan*
+**/terraform.tfvars
+util/keys
+
+*-kubeconfig
