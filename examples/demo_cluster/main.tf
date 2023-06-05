@@ -6,7 +6,6 @@ module "demo" {
   # source = "equinix/k3s/metal"
   source = "../.."
 
-  metal_auth_token = var.metal_auth_token
   metal_project_id = var.metal_project_id
   global_ip        = var.global_ip
   deploy_demo      = var.deploy_demo
