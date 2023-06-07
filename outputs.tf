@@ -1,10 +1,10 @@
 output "anycast_ip" {
-  value       = var.global_ip ? equinix_metal_reserved_ip_block.global_ip[0].address : null
+  value       = try(equinix_metal_reserved_ip_block.global_ip[0].address, null)
   description = "Global IP shared across Metros"
 }
 
 output "demo_url" {
-  value       = var.deploy_demo ? "http://hellok3s.${equinix_metal_reserved_ip_block.global_ip[0].address}.sslip.io" : null
+  value       = try("http://hellok3s.${equinix_metal_reserved_ip_block.global_ip[0].address}.sslip.io", null)
   description = "URL of the demo application to demonstrate a global IP shared across Metros"
 }
 

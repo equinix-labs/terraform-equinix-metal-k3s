@@ -1,0 +1,11 @@
+metal_auth_token="your_token_here" #This must be a user API token
+metal_project_id="your_project_id"
+clusters         = [
+  {
+    name = "Your cluster name"
+  },
+  {
+    name = "Your cluster name"
+    metro = "SV"
+  }
+]

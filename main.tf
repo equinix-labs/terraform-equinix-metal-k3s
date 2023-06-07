@@ -1,10 +1,20 @@
+locals {
+  global_ip_cidr = var.global_ip ? equinix_metal_reserved_ip_block.global_ip[0].cidr_notation : ""
+  # tflint-ignore: terraform_unused_declarations
+  validate_demo = (var.deploy_demo == true && var.global_ip == false) ? tobool("Demo is only deployed if global_ip = true.") : true
+}
+
+################################################################################
+# K3S Cluster In-line Module
+################################################################################
+
 module "k3s_cluster" {
   source = "./modules/k3s_cluster"
 
   for_each = { for cluster in var.clusters : cluster.name => cluster }
 
   cluster_name            = each.key
-  metro                   = each.value.metro
+  metal_metro             = each.value.metro
   plan_control_plane      = each.value.plan_control_plane
   plan_node               = each.value.plan_node
   node_count              = each.value.node_count
@@ -21,16 +31,14 @@ module "k3s_cluster" {
   global_ip_cidr          = local.global_ip_cidr
 }
 
+################################################################################
+# Global IP
+################################################################################
+
 resource "equinix_metal_reserved_ip_block" "global_ip" {
   project_id  = var.metal_project_id
   type        = "global_ipv4"
   quantity    = 1
   count       = var.global_ip ? 1 : 0
   description = "Global IP to Load Balance between all metros"
-}
-
-locals {
-  global_ip_cidr = var.global_ip ? equinix_metal_reserved_ip_block.global_ip[0].cidr_notation : ""
-  # tflint-ignore: terraform_unused_declarations
-  validate_demo = (var.deploy_demo == true && var.global_ip == false) ? tobool("Demo is only deployed if global_ip = true.") : true
 }
