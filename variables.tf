@@ -1,6 +1,6 @@
 variable "metal_project_id" {
   type        = string
-  description = "Your Equinix Metal Project ID"
+  description = "Equinix Metal Project ID"
 }
 
 variable "global_ip" {

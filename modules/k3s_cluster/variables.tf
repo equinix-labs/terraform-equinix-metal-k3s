@@ -1,10 +1,25 @@
+variable "metal_metro" {
+  type        = string
+  description = "Equinix Metal Metro"
+}
+
+variable "metal_project_id" {
+  type        = string
+  description = "Equinix Metal Project ID"
+}
+
+variable "deploy_demo" {
+  type        = bool
+  description = "Deploys a simple demo using a global IP as ingress and a hello-kubernetes pods"
+  default     = false
+}
+
 variable "cluster_name" {
   type        = string
   description = "Cluster name"
   default     = "K3s cluster"
 }
 
-# https://deploy.equinix.com/developers/capacity-dashboard/
 variable "plan_control_plane" {
   type        = string
   description = "K3s control plane type/size"
@@ -19,31 +34,20 @@ variable "plan_node" {
 
 variable "node_count" {
   type        = number
-  default     = "0"
   description = "Number of K3s nodes"
+  default     = "0"
 }
 
 variable "k3s_ha" {
   type        = bool
-  default     = false
   description = "K3s HA (aka 3 control plane nodes)"
-}
-
-variable "metro" {
-  type        = string
-  description = "Equinix metro code"
-  default     = "FR"
+  default     = false
 }
 
 variable "os" {
   type        = string
   description = "Operating system"
   default     = "debian_11"
-}
-
-variable "metal_project_id" {
-  type        = string
-  description = "Your Equinix Metal Project ID"
 }
 
 variable "control_plane_hostnames" {
@@ -86,10 +90,4 @@ variable "metallb_version" {
   type        = string
   description = "MetalLB version to be installed. Empty for latest"
   default     = ""
-}
-
-variable "deploy_demo" {
-  type        = bool
-  description = "Deploys a simple demo using a global IP as ingress and a hello-kubernetes pods"
-  default     = false
 }
