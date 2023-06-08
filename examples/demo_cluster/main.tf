@@ -3,7 +3,7 @@ provider "equinix" {
 }
 
 module "demo" {
-  # source = "equinix/k3s/metal"
+  # source = "equinix-labs/metal-k3s/equinix"
   source = "../.."
 
   metal_project_id = var.metal_project_id

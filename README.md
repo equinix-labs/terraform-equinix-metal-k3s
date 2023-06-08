@@ -1,6 +1,6 @@
 # K3s on Equinix Metal
 
-[![GitHub release](https://img.shields.io/github/release/equinix/terraform-metal-k3s/all.svg?style=flat-square)](https://github.com/equinix/terraform-metal-k3s/releases)
+[![GitHub release](https://img.shields.io/github/release/equinix-labs/terraform-equinix-metal-k3s/all.svg?style=flat-square)](https://github.com/equinix-labs/terraform-equinix-metal-k3s/releases)
 [![Slack](https://slack.equinixmetal.com/badge.svg)](https://slack.equinixmetal.com)
 [![Twitter Follow](https://img.shields.io/twitter/follow/equinixmetal.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=equinixmetal)
 ![](https://img.shields.io/badge/Stability-Experimental-red.svg)
@@ -216,8 +216,8 @@ k3s_api = {
 * Download the repository:
 
 ```bash
-git clone https://github.com/equinix/terraform-metal-k3s.git
-cd terraform-metal-k3s/examples/demo_cluster
+git clone https://github.com/equinix-labs/terraform-equinix-metal-k3s.git
+cd terraform-equinix-metal-k3s/examples/demo_cluster
 ```
 
 * Initialize terraform:
