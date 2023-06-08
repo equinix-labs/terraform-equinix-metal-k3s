@@ -332,7 +332,7 @@ sv-k3s-aio   Ready    control-plane,master   9m20s   v1.26.5+k3s1
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_metal_project_id"></a> [metal\_project\_id](#input\_metal\_project\_id) | Your Equinix Metal Project ID | `string` | n/a | yes |
+| <a name="input_metal_project_id"></a> [metal\_project\_id](#input\_metal\_project\_id) | Equinix Metal Project ID | `string` | n/a | yes |
 | <a name="input_clusters"></a> [clusters](#input\_clusters) | K3s cluster definition | <pre>list(object({<br>    name                    = optional(string, "K3s demo cluster")<br>    metro                   = optional(string, "FR")<br>    plan_control_plane      = optional(string, "c3.small.x86")<br>    plan_node               = optional(string, "c3.small.x86")<br>    node_count              = optional(number, 0)<br>    k3s_ha                  = optional(bool, false)<br>    os                      = optional(string, "debian_11")<br>    control_plane_hostnames = optional(string, "k3s-cp")<br>    node_hostnames          = optional(string, "k3s-node")<br>    custom_k3s_token        = optional(string, "")<br>    ip_pool_count           = optional(number, 0)<br>    k3s_version             = optional(string, "")<br>    metallb_version         = optional(string, "")<br>  }))</pre> | <pre>[<br>  {}<br>]</pre> | no |
 | <a name="input_deploy_demo"></a> [deploy\_demo](#input\_deploy\_demo) | Deploys a simple demo using a global IP as ingress and a hello-kubernetes pods | `bool` | `false` | no |
 | <a name="input_global_ip"></a> [global\_ip](#input\_global\_ip) | Enables a global anycast IPv4 that will be shared for all clusters in all metros | `bool` | `false` | no |
