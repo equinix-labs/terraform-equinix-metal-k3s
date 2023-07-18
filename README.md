@@ -263,9 +263,10 @@ As the SSH key for the project has been injected, the clusters can be accessed a
 
 ```bash
 (
+MODULENAME="demo_cluster"
 IFS=$'\n'
-for cluster in $(terraform output -json | jq -r ".k3s_api.type[1] | keys[]"); do
-  IP=$(terraform output -json | jq -r ".k3s_api.value[\"${cluster}\"]")
+for cluster in $(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api | keys[]"); do
+  IP=$(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api[\"${cluster}\"]")
   ssh root@${IP} kubectl get nodes
 done
 )
@@ -280,9 +281,10 @@ To access from outside, the K3s kubeconfig file can be copied to any host and re
 
 ```bash
 (
+MODULENAME="demo_cluster"
 IFS=$'\n'
-for cluster in $(terraform output -json | jq -r ".k3s_api.type[1] | keys[]"); do
-  IP=$(terraform output -json | jq -r ".k3s_api.value[\"${cluster}\"]")
+for cluster in $(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api | keys[]"); do
+  IP=$(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api[\"${cluster}\"]")
   export KUBECONFIG="./$(echo ${cluster}| tr -c -s '[:alnum:]' '-')-kubeconfig"
   scp root@${IP}:/etc/rancher/k3s/k3s.yaml ${KUBECONFIG}
   sed -i "s/127.0.0.1/${IP}/g" ${KUBECONFIG}
@@ -298,6 +300,26 @@ sv-k3s-aio   Ready    control-plane,master   9m20s   v1.26.5+k3s1
 ```
 
 > :warning: OSX sed is different, it needs to be used as `sed -i "" "s/127.0.0.1/${IP}/g" ${KUBECONFIG}` instead.
+
+```bash
+(
+MODULENAME="demo_cluster"
+IFS=$'\n'
+for cluster in $(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api | keys[]"); do
+  IP=$(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api[\"${cluster}\"]")
+  export KUBECONFIG="./$(echo ${cluster}| tr -c -s '[:alnum:]' '-')-kubeconfig"
+  scp root@${IP}:/etc/rancher/k3s/k3s.yaml ${KUBECONFIG}
+  sed -i "" "s/127.0.0.1/${IP}/g" ${KUBECONFIG}
+  chmod 600 ${KUBECONFIG}
+  kubectl get nodes
+done
+)
+
+NAME         STATUS   ROLES                  AGE     VERSION
+ny-k3s-aio   Ready    control-plane,master   8m41s   v1.26.5+k3s1
+NAME         STATUS   ROLES                  AGE     VERSION
+sv-k3s-aio   Ready    control-plane,master   9m20s   v1.26.5+k3s1
+```
 
 ## Terraform module documentation
 
