@@ -12,13 +12,13 @@ variable "metal_project_id" {
 variable "global_ip" {
   type        = bool
   description = "Enables a global anycast IPv4 that will be shared for all clusters in all metros"
-  default     = true
+  default     = false
 }
 
 variable "deploy_demo" {
   type        = bool
   description = "Deploys a simple demo using a global IP as ingress and a hello-kubernetes pods"
-  default     = true
+  default     = false
 }
 
 variable "clusters" {
