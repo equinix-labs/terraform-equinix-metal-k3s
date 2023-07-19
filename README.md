@@ -267,7 +267,7 @@ MODULENAME="demo_cluster"
 IFS=$'\n'
 for cluster in $(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api | keys[]"); do
   IP=$(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api[\"${cluster}\"]")
-  ssh root@${IP} kubectl get nodes
+  ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${IP} kubectl get nodes
 done
 )
 
@@ -286,7 +286,7 @@ IFS=$'\n'
 for cluster in $(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api | keys[]"); do
   IP=$(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api[\"${cluster}\"]")
   export KUBECONFIG="./$(echo ${cluster}| tr -c -s '[:alnum:]' '-')-kubeconfig"
-  scp root@${IP}:/etc/rancher/k3s/k3s.yaml ${KUBECONFIG}
+  scp -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${IP}:/etc/rancher/k3s/k3s.yaml ${KUBECONFIG}
   sed -i "s/127.0.0.1/${IP}/g" ${KUBECONFIG}
   chmod 600 ${KUBECONFIG}
   kubectl get nodes
@@ -308,7 +308,7 @@ IFS=$'\n'
 for cluster in $(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api | keys[]"); do
   IP=$(terraform output -json | jq -r ".${MODULENAME}.value.k3s_api[\"${cluster}\"]")
   export KUBECONFIG="./$(echo ${cluster}| tr -c -s '[:alnum:]' '-')-kubeconfig"
-  scp root@${IP}:/etc/rancher/k3s/k3s.yaml ${KUBECONFIG}
+  scp -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${IP}:/etc/rancher/k3s/k3s.yaml ${KUBECONFIG}
   sed -i "" "s/127.0.0.1/${IP}/g" ${KUBECONFIG}
   chmod 600 ${KUBECONFIG}
   kubectl get nodes
