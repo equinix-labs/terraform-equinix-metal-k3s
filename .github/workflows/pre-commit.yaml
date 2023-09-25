@@ -33,7 +33,7 @@ jobs:
       uses: actions/setup-python@v4
 
     - name: Install tflint
-      uses: terraform-linters/setup-tflint@v3
+      uses: terraform-linters/setup-tflint@v4
       with:
         tflint_version: ${{ env.TFLINT_VERSION }}
 
