@@ -44,7 +44,7 @@ jobs:
         key: ${{ matrix.os }}-tflint-${{ hashFiles('.tflint.hcl') }}
 
     - name: Install Terraform
-      uses: hashicorp/setup-terraform@v2
+      uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: ${{ env.TF_VERSION }}
 
