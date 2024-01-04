@@ -15,14 +15,14 @@ jobs:
     name: TF docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: actions/checkout@v4 # v4
         id: actions-checkout
         with:
           ref: main
 
       - name: Render terraform docs inside the main and the modules README.md files and push changes back to PR branch
         id: terraform-docs
-        uses: terraform-docs/gh-actions@v1.0.0
+        uses: terraform-docs/gh-actions@v1
         with:
           find-dir: .
           args: --sort-by required
