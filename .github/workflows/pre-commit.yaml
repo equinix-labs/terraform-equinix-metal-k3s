@@ -30,7 +30,7 @@ jobs:
       uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
 
     - name: Install Python3
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
 
     - name: Install tflint
       uses: terraform-linters/setup-tflint@v4
