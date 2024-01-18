@@ -38,7 +38,7 @@ jobs:
         tflint_version: ${{ env.TFLINT_VERSION }}
 
     - name: Cache tflint plugin dir
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.tflint.d/plugins
         key: ${{ matrix.os }}-tflint-${{ hashFiles('.tflint.hcl') }}
@@ -54,7 +54,7 @@ jobs:
         mkdir --parents ~/.terraform.d/plugin-cache
 
     - name: Cache Terraform
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.terraform.d/plugin-cache
