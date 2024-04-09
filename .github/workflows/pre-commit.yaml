@@ -67,6 +67,6 @@ jobs:
       with:
         repo: aquasecurity/tfsec
         platform: linux
-        arch: x86-64
+        arch: amd64
 
     - uses: pre-commit/action@v3.0.0
