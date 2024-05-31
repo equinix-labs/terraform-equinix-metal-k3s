@@ -69,4 +69,4 @@ jobs:
         platform: linux
         arch: amd64
 
-    - uses: pre-commit/action@v3.0.0
+    - uses: pre-commit/action@v3.0.1
