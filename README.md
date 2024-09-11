@@ -1,9 +1,8 @@
 # K3s on Equinix Metal
 
 [![GitHub release](https://img.shields.io/github/release/equinix-labs/terraform-equinix-metal-k3s/all.svg?style=flat-square)](https://github.com/equinix-labs/terraform-equinix-metal-k3s/releases)
-[![Slack](https://slack.equinixmetal.com/badge.svg)](https://slack.equinixmetal.com)
-[![Twitter Follow](https://img.shields.io/twitter/follow/equinixmetal.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=equinixmetal)
 ![](https://img.shields.io/badge/Stability-Experimental-red.svg)
+[![Equinix Community](https://img.shields.io/badge/Equinix%20Community%20-%20%23E91C24?logo=equinixmetal)](https://community.equinix.com)
 
 ## Table of content
 
