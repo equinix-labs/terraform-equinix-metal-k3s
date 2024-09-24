@@ -200,7 +200,9 @@ install_metallb(){
 }
 
 install_k3s(){
-	apt update && apt install curl -y
+	# Curl is needed to download the k3s binary
+	# Jq is needed to parse the Equinix Metal metadata (json format)
+	apt update && apt install curl jq -y
 
 	# Download the K3s installer script
 	curl -L --output k3s_installer.sh https://get.k3s.io && install -m755 k3s_installer.sh /usr/local/bin/
@@ -217,25 +219,27 @@ install_k3s(){
 
 	export INSTALL_K3S_SKIP_START=false
 	export K3S_TOKEN="${k3s_token}"
+	export NODE_IP=$(curl -s https://metadata.platformequinix.com/metadata | jq -r '.network.addresses[] | select(.public == false and .address_family == 4) |.address')
+	export NODE_EXTERNAL_IP=$(curl -s https://metadata.platformequinix.com/metadata | jq -r '.network.addresses[] | select(.public == true and .address_family == 4) |.address')
 %{ if node_type == "all-in-one" ~}
 %{ if global_ip_cidr != "" ~}
-	export INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644 --disable=servicelb"
+	export INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644 --disable=servicelb --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
 %{ else ~}
 %{ if ip_pool != "" ~}
-	export INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644 --disable=servicelb"
+	export INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644 --disable=servicelb --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
 %{ else ~}
-	export INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644"
+	export INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644 --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
 %{ endif ~}
 %{ endif ~}
 %{ endif ~}
 %{ if node_type == "control-plane-master" ~}
-	export INSTALL_K3S_EXEC="server --cluster-init --write-kubeconfig-mode=644 --tls-san=${API_IP} --tls-san=${API_IP}.sslip.io --disable=servicelb"
+	export INSTALL_K3S_EXEC="server --cluster-init --write-kubeconfig-mode=644 --tls-san=${API_IP} --tls-san=${API_IP}.sslip.io --disable=servicelb --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
 %{ endif ~}
 %{ if node_type == "control-plane" ~}
-	export INSTALL_K3S_EXEC="server --server https://${API_IP}:6443 --write-kubeconfig-mode=644"
+	export INSTALL_K3S_EXEC="server --server https://${API_IP}:6443 --write-kubeconfig-mode=644 --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
 %{ endif ~}
 %{ if node_type == "node" ~}
-	export K3S_URL="https://${API_IP}:6443"
+	export INSTALL_K3S_EXEC="agent --server https://${API_IP}:6443 --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
 %{ endif ~}
 %{ if k3s_version != "" ~}
 	export INSTALL_K3S_VERSION=${k3s_version}
