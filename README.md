@@ -68,7 +68,8 @@ More on that later.
 * [BGP](https://deploy.equinix.com/developers/docs/metal/bgp/local-bgp/) enabled in the project.
   <details><summary>Show more details</summary><p>
   Equinix Metal supports Local BGP for advertising routes to your Equinix Metal servers in a local environment, and this will be used to provide a single entrypoint for the K3s API in HA deployments as well as to provide `LoadBalancer` services using MetalLB. Check the above link for instructions on how to enable it.
-  </p></details>
+  </p><p>If BGP is not enabled on the project, you will see `Error: API Error HTTP 422 BGP is not enabled`.</p>
+  </details>
 * An [SSH Key](https://deploy.equinix.com/developers/docs/metal/accounts/ssh-keys/) configured.
   <details><summary>Show more details</summary><p>
   Having a SSH in your account or project makes the provision procedure to inject it automatically in the host being provisioned, so you can ssh into it. They can be created either via the Web UI, via the CLI or the API, check the above link for instructions on how to get it.
