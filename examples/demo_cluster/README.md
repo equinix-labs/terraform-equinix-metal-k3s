@@ -1,6 +1,6 @@
-# SiDemo Cluster Example
+# Demo Cluster Examples
 
-This example demonstrates usage of the Equinix Metal K3s module. A Demo application is installed.
+This example demonstrates usage of the Equinix Metal K3s/RKE2 module. A Demo application is installed.
 
 ## Usage
 
@@ -36,15 +36,15 @@ No resources.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_metal_auth_token"></a> [metal\_auth\_token](#input\_metal\_auth\_token) | Your Equinix Metal API key | `string` | n/a | yes |
-| <a name="input_metal_project_id"></a> [metal\_project\_id](#input\_metal\_project\_id) | Your Equinix Metal Project ID | `string` | n/a | yes |
-| <a name="input_clusters"></a> [clusters](#input\_clusters) | K3s cluster definition | <pre>list(object({<br>    name                    = optional(string, "K3s demo cluster")<br>    metro                   = optional(string, "FR")<br>    plan_control_plane      = optional(string, "c3.small.x86")<br>    plan_node               = optional(string, "c3.small.x86")<br>    node_count              = optional(number, 0)<br>    k3s_ha                  = optional(bool, false)<br>    os                      = optional(string, "debian_11")<br>    control_plane_hostnames = optional(string, "k3s-cp")<br>    node_hostnames          = optional(string, "k3s-node")<br>    custom_k3s_token        = optional(string, "")<br>    ip_pool_count           = optional(number, 0)<br>    k3s_version             = optional(string, "")<br>    metallb_version         = optional(string, "")<br>  }))</pre> | <pre>[<br>  {}<br>]</pre> | no |
+| <a name="input_clusters"></a> [clusters](#input\_clusters) | Cluster definition | <pre>list(object({<br/>    name                    = optional(string, "Demo cluster")<br/>    metro                   = optional(string, "FR")<br/>    plan_control_plane      = optional(string, "c3.small.x86")<br/>    plan_node               = optional(string, "c3.small.x86")<br/>    node_count              = optional(number, 0)<br/>    ha                      = optional(bool, false)<br/>    os                      = optional(string, "debian_11")<br/>    control_plane_hostnames = optional(string, "cp")<br/>    node_hostnames          = optional(string, "node")<br/>    custom_token            = optional(string, "")<br/>    ip_pool_count           = optional(number, 0)<br/>    kube_version            = optional(string, "")<br/>    metallb_version         = optional(string, "")<br/>    rancher_version         = optional(string, "")<br/>    rancher_flavor          = optional(string, "")<br/>    custom_rancher_password = optional(string, "")<br/>  }))</pre> | <pre>[<br/>  {}<br/>]</pre> | no |
 | <a name="input_deploy_demo"></a> [deploy\_demo](#input\_deploy\_demo) | Deploys a simple demo using a global IP as ingress and a hello-kubernetes pods | `bool` | `false` | no |
 | <a name="input_global_ip"></a> [global\_ip](#input\_global\_ip) | Enables a global anycast IPv4 that will be shared for all clusters in all metros | `bool` | `false` | no |
+| <a name="input_metal_auth_token"></a> [metal\_auth\_token](#input\_metal\_auth\_token) | Your Equinix Metal API key | `string` | n/a | yes |
+| <a name="input_metal_project_id"></a> [metal\_project\_id](#input\_metal\_project\_id) | Your Equinix Metal Project ID | `string` | n/a | yes |
 
 ### Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_demo_cluster"></a> [demo\_cluster](#output\_demo\_cluster) | Passthrough of the root module output |
+| <a name="output_clusters_output"></a> [clusters\_output](#output\_clusters\_output) | Passthrough of the root module output |
 <!-- END_TF_DOCS -->

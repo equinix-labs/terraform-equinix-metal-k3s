@@ -8,9 +8,25 @@ output "demo_url" {
   description = "URL of the demo application to demonstrate a global IP shared across Metros"
 }
 
-output "k3s_api" {
+output "cluster_details" {
   value = {
-    for cluster in var.clusters : cluster.name => module.k3s_cluster[cluster.name].k3s_api_ip
+    for cluster in var.clusters : cluster.name => {
+      api          = module.kube_cluster[cluster.name].kube_api_ip
+      ingress      = module.kube_cluster[cluster.name].ingress_ip
+      ip_pool_cidr = module.kube_cluster[cluster.name].ip_pool_cidr
+      nodes        = module.kube_cluster[cluster.name].nodes_details
+    }
   }
-  description = "List of Clusters => K3s APIs"
+  description = "List of Clusters => K8s details"
+}
+
+output "rancher_urls" {
+  value = {
+    for cluster in var.clusters : cluster.name => {
+      rancher_url                     = cluster.rancher_flavor != "" ? module.kube_cluster[cluster.name].rancher_address : null
+      rancher_initial_password_base64 = cluster.rancher_flavor != "" ? base64encode(module.kube_cluster[cluster.name].rancher_password) : null
+    }
+    if module.kube_cluster[cluster.name].rancher_address != null
+  }
+  description = "List of Clusters => Rancher details"
 }
