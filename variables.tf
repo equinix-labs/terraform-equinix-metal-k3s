@@ -13,24 +13,31 @@ variable "deploy_demo" {
   type        = bool
   description = "Deploys a simple demo using a global IP as ingress and a hello-kubernetes pods"
   default     = false
+  validation {
+    condition     = !var.deploy_demo || var.global_ip
+    error_message = "When deploy_demo is true, global_ip must be true as well."
+  }
 }
 
 variable "clusters" {
-  description = "K3s cluster definition"
+  description = "Cluster definition"
   type = list(object({
-    name                    = optional(string, "K3s demo cluster")
+    name                    = optional(string, "Demo cluster")
     metro                   = optional(string, "FR")
     plan_control_plane      = optional(string, "c3.small.x86")
     plan_node               = optional(string, "c3.small.x86")
     node_count              = optional(number, 0)
-    k3s_ha                  = optional(bool, false)
+    ha                      = optional(bool, false)
     os                      = optional(string, "debian_11")
-    control_plane_hostnames = optional(string, "k3s-cp")
-    node_hostnames          = optional(string, "k3s-node")
-    custom_k3s_token        = optional(string, "")
+    control_plane_hostnames = optional(string, "cp")
+    node_hostnames          = optional(string, "node")
+    custom_token            = optional(string, "")
     ip_pool_count           = optional(number, 0)
-    k3s_version             = optional(string, "")
+    kube_version            = optional(string, "")
     metallb_version         = optional(string, "")
+    rancher_flavor          = optional(string, "")
+    rancher_version         = optional(string, "")
+    custom_rancher_password = optional(string, "")
   }))
   default = [{}]
 }

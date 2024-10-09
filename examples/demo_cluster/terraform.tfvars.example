@@ -1,11 +1,26 @@
 metal_auth_token="your_token_here" #This must be a user API token
 metal_project_id="your_project_id"
-clusters         = [
+clusters = [
   {
-    name = "Your cluster name"
+    name           = "FR DEV Cluster"
+    rancher_flavor = "stable"
+    ip_pool_count  = 1
+    kube_version   = "v1.29.9+k3s1"
   },
   {
-    name = "Your cluster name"
-    metro = "SV"
+    name         = "SV DEV Cluster"
+    metro        = "SV"
+    node_count   = 1
+    kube_version = "v1.30.3+rke2r1"
+  },
+  {
+    name          = "SV Production"
+    ip_pool_count = 4
+    ha            = true
+    metro         = "SV"
+    node_count    = 3
   }
 ]
+
+global_ip   = true
+deploy_demo = true

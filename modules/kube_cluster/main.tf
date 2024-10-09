@@ -1,10 +1,17 @@
 locals {
-  k3s_token    = coalesce(var.custom_k3s_token, random_string.random_k3s_token.result)
-  api_vip      = var.k3s_ha ? equinix_metal_reserved_ip_block.api_vip_addr[0].address : equinix_metal_device.all_in_one[0].network[0].address
+  token        = coalesce(var.custom_token, random_string.random_token.result)
+  rancher_pass = var.custom_rancher_password != null ? coalesce(var.custom_rancher_password, random_string.random_password.result) : null
+  api_vip      = var.ha ? equinix_metal_reserved_ip_block.api_vip_addr[0].address : equinix_metal_device.all_in_one[0].network[0].address
+  ingress_ip   = var.ip_pool_count > 0 ? equinix_metal_reserved_ip_block.ingress_addr[0].address : ""
   ip_pool_cidr = var.ip_pool_count > 0 ? equinix_metal_reserved_ip_block.ip_pool[0].cidr_notation : ""
 }
 
-resource "random_string" "random_k3s_token" {
+resource "random_string" "random_token" {
+  length  = 16
+  special = false
+}
+
+resource "random_string" "random_password" {
   length  = 16
   special = false
 }
@@ -20,32 +27,45 @@ resource "equinix_metal_device" "control_plane_master" {
   operating_system = var.os
   billing_cycle    = "hourly"
   project_id       = var.metal_project_id
-  count            = var.k3s_ha ? 1 : 0
+  count            = var.ha ? 1 : 0
   description      = var.cluster_name
   user_data = templatefile("${path.module}/templates/user-data.tftpl", {
-    k3s_token       = local.k3s_token,
+    token           = local.token,
     API_IP          = local.api_vip,
+    ingress_ip      = local.ingress_ip,
     global_ip_cidr  = var.global_ip_cidr,
     ip_pool         = local.ip_pool_cidr,
-    k3s_version     = var.k3s_version,
+    kube_version    = var.kube_version,
     metallb_version = var.metallb_version,
     deploy_demo     = var.deploy_demo,
+    rancher_flavor  = var.rancher_flavor,
+    rancher_version = var.rancher_version,
+    rancher_pass    = local.rancher_pass,
   node_type = "control-plane-master" })
 }
 
 resource "equinix_metal_bgp_session" "control_plane_master" {
   device_id      = equinix_metal_device.control_plane_master[0].id
   address_family = "ipv4"
-  count          = var.k3s_ha ? 1 : 0
+  count          = var.ha ? 1 : 0
 }
 
 resource "equinix_metal_reserved_ip_block" "api_vip_addr" {
-  count       = var.k3s_ha ? 1 : 0
+  count       = var.ha ? 1 : 0
   project_id  = var.metal_project_id
   metro       = var.metal_metro
   type        = "public_ipv4"
   quantity    = 1
-  description = "K3s API IP"
+  description = "Kubernetes API IP for the ${var.cluster_name} cluster"
+}
+
+resource "equinix_metal_reserved_ip_block" "ingress_addr" {
+  count       = var.ip_pool_count > 0 ? 1 : 0
+  project_id  = var.metal_project_id
+  metro       = var.metal_metro
+  type        = "public_ipv4"
+  quantity    = 1
+  description = "Ingress IP for the ${var.cluster_name} cluster"
 }
 
 resource "equinix_metal_device" "control_plane_others" {
@@ -55,16 +75,20 @@ resource "equinix_metal_device" "control_plane_others" {
   operating_system = var.os
   billing_cycle    = "hourly"
   project_id       = var.metal_project_id
-  count            = var.k3s_ha ? 2 : 0
+  count            = var.ha ? 2 : 0
   description      = var.cluster_name
   depends_on       = [equinix_metal_device.control_plane_master]
   user_data = templatefile("${path.module}/templates/user-data.tftpl", {
-    k3s_token       = local.k3s_token,
+    token           = local.token,
     API_IP          = local.api_vip,
+    ingress_ip      = local.ingress_ip,
     global_ip_cidr  = "",
     ip_pool         = "",
-    k3s_version     = var.k3s_version,
+    kube_version    = var.kube_version,
     metallb_version = var.metallb_version,
+    rancher_flavor  = var.rancher_flavor,
+    rancher_version = var.rancher_version,
+    rancher_pass    = local.rancher_pass,
     deploy_demo     = false,
   node_type = "control-plane" })
 }
@@ -72,13 +96,13 @@ resource "equinix_metal_device" "control_plane_others" {
 resource "equinix_metal_bgp_session" "control_plane_second" {
   device_id      = equinix_metal_device.control_plane_others[0].id
   address_family = "ipv4"
-  count          = var.k3s_ha ? 1 : 0
+  count          = var.ha ? 1 : 0
 }
 
 resource "equinix_metal_bgp_session" "control_plane_third" {
   device_id      = equinix_metal_device.control_plane_others[1].id
   address_family = "ipv4"
-  count          = var.k3s_ha ? 1 : 0
+  count          = var.ha ? 1 : 0
 }
 
 ################################################################################
@@ -91,7 +115,7 @@ resource "equinix_metal_reserved_ip_block" "ip_pool" {
   quantity    = var.ip_pool_count
   metro       = var.metal_metro
   count       = var.ip_pool_count > 0 ? 1 : 0
-  description = "IP Pool to be used for LoadBalancers via MetalLB"
+  description = "IP Pool to be used for LoadBalancers via MetalLB on the ${var.cluster_name} cluster"
 }
 
 ################################################################################
@@ -109,12 +133,16 @@ resource "equinix_metal_device" "nodes" {
   description      = var.cluster_name
   depends_on       = [equinix_metal_device.control_plane_master]
   user_data = templatefile("${path.module}/templates/user-data.tftpl", {
-    k3s_token       = local.k3s_token,
+    token           = local.token,
     API_IP          = local.api_vip,
+    ingress_ip      = local.ingress_ip,
     global_ip_cidr  = "",
     ip_pool         = "",
-    k3s_version     = var.k3s_version,
+    kube_version    = var.kube_version,
     metallb_version = var.metallb_version,
+    rancher_flavor  = var.rancher_flavor,
+    rancher_version = var.rancher_version,
+    rancher_pass    = local.rancher_pass,
     deploy_demo     = false,
   node_type = "node" })
 }
@@ -130,16 +158,20 @@ resource "equinix_metal_device" "all_in_one" {
   operating_system = var.os
   billing_cycle    = "hourly"
   project_id       = var.metal_project_id
-  count            = var.k3s_ha ? 0 : 1
+  count            = var.ha ? 0 : 1
   description      = var.cluster_name
   user_data = templatefile("${path.module}/templates/user-data.tftpl", {
-    k3s_token       = local.k3s_token,
+    token           = local.token,
     global_ip_cidr  = var.global_ip_cidr,
     ip_pool         = local.ip_pool_cidr,
     API_IP          = "",
-    k3s_version     = var.k3s_version,
+    ingress_ip      = local.ingress_ip,
+    kube_version    = var.kube_version,
     metallb_version = var.metallb_version,
     deploy_demo     = var.deploy_demo,
+    rancher_flavor  = var.rancher_flavor,
+    rancher_version = var.rancher_version,
+    rancher_pass    = local.rancher_pass,
   node_type = "all-in-one" })
 }
 
@@ -147,5 +179,5 @@ resource "equinix_metal_device" "all_in_one" {
 resource "equinix_metal_bgp_session" "all_in_one" {
   device_id      = equinix_metal_device.all_in_one[0].id
   address_family = "ipv4"
-  count          = var.k3s_ha ? 0 : 1
+  count          = var.ha ? 0 : 1
 }

@@ -1,0 +1,707 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+die(){
+	echo $${1} >&2
+	exit $${2}
+}
+
+prechecks(){
+	# Set OS
+	source /etc/os-release
+	case $${ID} in
+		"debian")
+			export PKGMANAGER="apt"
+			;;
+		"sles")
+			export PKGMANAGER="zypper"
+			;;
+		"sle-micro")
+			export PKGMANAGER="transactional-update"
+			;;
+		*)
+			die "Unsupported OS $${ID}" 1
+			;;
+	esac
+	# Set ARCH
+	ARCH=$(uname -m)
+	case $${ARCH} in
+		"amd64")
+			export ARCH=amd64
+			export SUFFIX=
+			;;
+		"x86_64")
+			export ARCH=amd64
+			export SUFFIX=
+			;;
+		"arm64")
+			export ARCH=arm64
+			export SUFFIX=-$${ARCH}
+			;;
+		"s390x")
+			export ARCH=s390x
+			export SUFFIX=-$${ARCH}
+			;;
+		"aarch64")
+			export ARCH=arm64
+			export SUFFIX=-$${ARCH}
+			;;
+		"arm*")
+			export ARCH=arm
+			export SUFFIX=-$${ARCH}hf
+			;;
+		*)
+			die "Unsupported architecture $${ARCH}" 1
+			;;
+	esac
+}
+
+prereqs(){
+	# Required packages
+	case $${PKGMANAGER} in
+		"apt")
+			apt update
+			apt install -y jq curl
+			;;
+		"zypper")
+			zypper refresh
+			zypper install -y jq curl
+			;;
+		esac
+}
+
+wait_for_kube_api(){
+	# Wait for the node to be available, meaning the K8s API is available
+	while ! kubectl wait --for condition=ready node $(cat /etc/hostname | tr '[:upper:]' '[:lower:]') --timeout=60s; do sleep 2 ; done
+}
+
+install_eco(){
+	# Wait for K3s to be up. It should be up already but just in case.
+	wait_for_kube_api
+
+	# Download helm as required to install endpoint-copier-operator
+	command -v helm || curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 |bash
+
+	# Add the SUSE Edge charts and deploy ECO
+	helm repo add suse-edge https://suse-edge.github.io/charts
+	helm repo update
+	helm install --create-namespace -n endpoint-copier-operator endpoint-copier-operator suse-edge/endpoint-copier-operator
+
+	# Configure the MetalLB IP Address pool for the VIP
+	cat <<-EOF | kubectl apply -f -
+	apiVersion: metallb.io/v1beta1
+	kind: IPAddressPool
+	metadata:
+	  name: kubernetes-vip-ip-pool
+	  namespace: metallb-system
+	spec:
+	  addresses:
+	  - ${API_IP}/32
+	  serviceAllocation:
+	    priority: 100
+	    namespaces:
+	      - default
+	EOF
+
+	# Create the kubernetes-vip service that will be updated by e-c-o with the control plane hosts
+	if [[ $${KUBETYPE} == "k3s" ]]; then
+		cat <<-EOF | kubectl apply -f -
+		apiVersion: v1
+		kind: Service
+		metadata:
+		  name: kubernetes-vip
+		  namespace: default
+		spec:
+		  internalTrafficPolicy: Cluster
+		  ipFamilies:
+		  - IPv4
+		  ipFamilyPolicy: SingleStack
+		  ports:
+		  - name: k8s-api
+		    port: 6443
+		    protocol: TCP
+		    targetPort: 6443
+		  type: LoadBalancer
+		EOF
+	fi
+	if [[ $${KUBETYPE} == "rke2" ]]; then
+		cat <<-EOF | kubectl apply -f -
+		apiVersion: v1
+		kind: Service
+		metadata:
+		  name: kubernetes-vip
+		  namespace: default
+		spec:
+		  internalTrafficPolicy: Cluster
+		  ipFamilies:
+		  - IPv4
+		  ipFamilyPolicy: SingleStack
+		  ports:
+		  - name: k8s-api
+		    port: 6443
+		    protocol: TCP
+		    targetPort: 6443
+		  - name: rke2-api
+		    port: 9345
+		    protocol: TCP
+		    targetPort: 9345
+		  type: LoadBalancer
+		EOF
+	fi
+}
+
+install_metallb(){
+%{ if metallb_version != "" ~}
+	export METALLB_VERSION=${metallb_version}
+%{ else ~}
+	export METALLB_VERSION=$(curl --silent "https://api.github.com/repos/metallb/metallb/releases/latest" | jq -r .tag_name)
+%{ endif ~}
+
+	# Wait for K3s to be up. It should be up already but just in case.
+	wait_for_kube_api
+
+	# Apply the MetalLB manifest
+	kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/$${METALLB_VERSION}/config/manifests/metallb-native.yaml
+
+	# Wait for MetalLB to be up
+	while ! kubectl wait --for condition=ready -n metallb-system $(kubectl get pods -n metallb-system -l component=controller -o name) --timeout=10s; do sleep 2 ; done
+
+	# In order to configure MetalLB, the metadata information is required.
+	# BGP info can take a few seconds to be populated, retry if that's the case
+	INTERNAL_IP="null"
+	while [ $${INTERNAL_IP} == "null" ]; do
+		echo "BGP data still not available..."
+		sleep 5
+		METADATA=$(curl -s https://metadata.platformequinix.com/metadata)
+		INTERNAL_IP=$(echo $${METADATA} | jq -r '.bgp_neighbors[0].customer_ip')
+	done
+	PEER_IP_1=$(echo $${METADATA} | jq -r '.bgp_neighbors[0].peer_ips[0]')
+	PEER_IP_2=$(echo $${METADATA} | jq -r '.bgp_neighbors[0].peer_ips[1]')
+	ASN=$(echo $${METADATA} | jq -r '.bgp_neighbors[0].customer_as')
+	ASN_AS=$(echo $${METADATA} | jq -r '.bgp_neighbors[0].peer_as')
+
+%{ if global_ip_cidr != "" ~}
+	# Configure the IPAddressPool for the Global IP if present
+	cat <<- EOF | kubectl apply -f -
+	apiVersion: metallb.io/v1beta1
+	kind: IPAddressPool
+	metadata:
+	  name: anycast-ip
+	  namespace: metallb-system
+	spec:
+	  addresses:
+	  - ${global_ip_cidr}
+	  autoAssign: true
+	  avoidBuggyIPs: false
+	  serviceAllocation:
+	    namespaces:
+	    - ingress-nginx-global
+	    priority: 100
+	    serviceSelectors:
+	    - matchExpressions:
+	      - key: ingress-type
+	        operator: In
+	        values:
+	        - ingress-nginx-global
+	EOF
+%{ endif ~}
+
+%{ if ingress_ip != "" ~}
+	if [ "$${KUBETYPE}" == "k3s" ]; then
+		# Configure an IPAddressPool for Ingress only
+		cat <<- EOF | kubectl apply -f -
+		apiVersion: metallb.io/v1beta1
+		kind: IPAddressPool
+		metadata:
+		  name: ingress
+		  namespace: metallb-system
+		spec:
+		  addresses:
+		  - ${ingress_ip}/32
+		  serviceAllocation:
+		    priority: 100
+		    serviceSelectors:
+		      - matchExpressions:
+		        - {key: app.kubernetes.io/name, operator: In, values: [traefik]}
+		EOF
+	fi
+	if [ "$${KUBETYPE}" == "rke2" ]; then
+		# Configure an IPAddressPool for Ingress only
+		cat <<- EOF | kubectl apply -f -
+		apiVersion: metallb.io/v1beta1
+		kind: IPAddressPool
+		metadata:
+		  name: ingress
+		  namespace: metallb-system
+		spec:
+		  addresses:
+		  - ${ingress_ip}/32
+		  serviceAllocation:
+		    priority: 100
+		    serviceSelectors:
+		      - matchExpressions:
+		        - {key: app.kubernetes.io/name, operator: In, values: [rke2-ingress-nginx]}
+		EOF
+	fi
+%{ endif ~}
+
+%{ if ip_pool != "" ~}
+	# Configure the IPAddressPool for the IP pool if present
+	cat <<- EOF | kubectl apply -f -
+	apiVersion: metallb.io/v1beta1
+	kind: IPAddressPool
+	metadata:
+	  name: ippool
+	  namespace: metallb-system
+	spec:
+	  addresses:
+	  - ${ip_pool}
+	  autoAssign: false
+	EOF
+%{ endif ~}
+
+	# Configure the BGPPeer for each peer IP
+	cat <<- EOF | kubectl apply -f -
+	apiVersion: metallb.io/v1beta2
+	kind: BGPPeer
+	metadata:
+	  name: equinix-metal-peer-1
+	  namespace: metallb-system
+	spec:
+	  peerASN: $${ASN_AS}
+	  myASN: $${ASN}
+	  peerAddress: $${PEER_IP_1}
+	  sourceAddress: $${INTERNAL_IP}
+	EOF
+
+	cat <<- EOF | kubectl apply -f -
+	apiVersion: metallb.io/v1beta2
+	kind: BGPPeer
+	metadata:
+	  name: equinix-metal-peer-1
+	  namespace: metallb-system
+	spec:
+	  peerASN: $${ASN_AS}
+	  myASN: $${ASN}
+	  peerAddress: $${PEER_IP_2}
+	  sourceAddress: $${INTERNAL_IP}
+	EOF
+
+	# Enable the BGPAdvertisement, only to be executed in the control-plane nodes
+	cat <<- EOF | kubectl apply -f -
+	apiVersion: metallb.io/v1beta1
+	kind: BGPAdvertisement
+	metadata:
+	  name: bgp-peers
+	  namespace: metallb-system
+	spec:
+	  nodeSelectors:
+	  - matchLabels:
+	      node-role.kubernetes.io/control-plane: "true"
+	EOF
+}
+
+install_k3s(){
+	# Download the K3s installer script
+	curl -L --output k3s_installer.sh https://get.k3s.io && install -m755 k3s_installer.sh /usr/local/bin/
+
+%{ if node_type == "control-plane" ~}
+	# If the node to be installed is the second or third control plane or extra nodes, wait for the API to be up
+	# Wait for the first control plane node to be up
+	while ! curl -m 10 -s -k -o /dev/null https://${API_IP}:6443 ; do echo "API still not reachable"; sleep 2 ; done
+%{ endif ~}
+%{ if node_type == "node" ~}
+	# Wait for the first control plane node to be up
+	while ! curl -m 10 -s -k -o /dev/null https://${API_IP}:6443 ; do echo "API still not reachable"; sleep 2 ; done
+%{ endif ~}
+
+	export INSTALL_K3S_SKIP_ENABLE=false
+	export INSTALL_K3S_SKIP_START=false
+	export K3S_TOKEN="${token}"
+	export NODE_IP=$(curl -s https://metadata.platformequinix.com/metadata | jq -r '.network.addresses[] | select(.public == false and .address_family == 4) |.address')
+	export NODE_EXTERNAL_IP=$(curl -s https://metadata.platformequinix.com/metadata | jq -r '.network.addresses[] | select(.public == true and .address_family == 4) |.address')
+%{ if node_type == "all-in-one" ~}
+%{ if global_ip_cidr != "" ~}
+	export INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644 --disable=servicelb --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
+%{ else ~}
+%{ if ip_pool != "" ~}
+	export INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644 --disable=servicelb --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
+%{ else ~}
+	export INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644 --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
+%{ endif ~}
+%{ endif ~}
+%{ endif ~}
+%{ if node_type == "control-plane-master" ~}
+	export INSTALL_K3S_EXEC="server --cluster-init --write-kubeconfig-mode=644 --tls-san=${API_IP} --tls-san=${API_IP}.sslip.io --disable=servicelb --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
+%{ endif ~}
+%{ if node_type == "control-plane" ~}
+	export INSTALL_K3S_EXEC="server --server https://${API_IP}:6443 --write-kubeconfig-mode=644 --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
+%{ endif ~}
+%{ if node_type == "node" ~}
+	export INSTALL_K3S_EXEC="agent --server https://${API_IP}:6443 --node-ip $${NODE_IP} --node-external-ip $${NODE_EXTERNAL_IP}"
+%{ endif ~}
+%{ if kube_version != "" ~}
+	export INSTALL_K3S_VERSION="${kube_version}"
+%{ endif ~}
+	/usr/local/bin/k3s_installer.sh
+}
+
+install_rke2(){
+	# Download the RKE2 installer script
+	curl -L --output rke2_installer.sh https://get.rke2.io && install -m755 rke2_installer.sh /usr/local/bin/
+
+	# RKE2 configuration is set via config.yaml file
+	mkdir -p /etc/rancher/rke2/
+
+%{ if node_type == "control-plane" ~}
+	# If the node to be installed is the second or third control plane or extra nodes, wait for the API to be up
+	# Wait for the first control plane node to be up
+	while ! curl -m 10 -s -k -o /dev/null https://${API_IP}:6443 ; do echo "API still not reachable"; sleep 2 ; done
+%{ endif ~}
+%{ if node_type == "node" ~}
+	# Wait for the first control plane node to be up
+	while ! curl -m 10 -s -k -o /dev/null https://${API_IP}:6443 ; do echo "API still not reachable"; sleep 2 ; done
+%{ endif ~}
+
+	export RKE2_TOKEN="${token}"
+	export NODE_IP=$(curl -s https://metadata.platformequinix.com/metadata | jq -r '.network.addresses[] | select(.public == false and .address_family == 4) |.address')
+	export NODE_EXTERNAL_IP=$(curl -s https://metadata.platformequinix.com/metadata | jq -r '.network.addresses[] | select(.public == true and .address_family == 4) |.address')
+%{ if node_type == "all-in-one" ~}
+	export INSTALL_RKE2_TYPE="server"
+	cat <<- EOF >> /etc/rancher/rke2/config.yaml
+	token: $${RKE2_TOKEN}
+	write-kubeconfig-mode: "0644"
+	node-ip: $${NODE_IP}
+	node-external-ip: $${NODE_EXTERNAL_IP}
+	EOF
+%{ endif ~}
+%{ if node_type == "control-plane-master" ~}
+	export INSTALL_RKE2_TYPE="server"
+	cat <<- EOF >> /etc/rancher/rke2/config.yaml
+	token: $${RKE2_TOKEN}
+	write-kubeconfig-mode: "0644"
+	node-ip: $${NODE_IP}
+	node-external-ip: $${NODE_EXTERNAL_IP}
+	tls-san:
+	  - "${API_IP}"
+	  - "${API_IP}.sslip.io"
+	EOF
+%{ endif ~}
+%{ if node_type == "control-plane" ~}
+	export INSTALL_RKE2_TYPE="server"
+	cat <<- EOF >> /etc/rancher/rke2/config.yaml
+	server: https://${API_IP}:9345
+	token: $${RKE2_TOKEN}
+	write-kubeconfig-mode: "0644"
+	node-ip: $${NODE_IP}
+	node-external-ip: $${NODE_EXTERNAL_IP}
+	EOF
+%{ endif ~}
+%{ if node_type == "node" ~}
+	export INSTALL_RKE2_TYPE="agent"
+	cat <<- EOF >> /etc/rancher/rke2/config.yaml
+	server: https://${API_IP}:9345
+	token: $${RKE2_TOKEN}
+	write-kubeconfig-mode: "0644"
+	node-ip: $${NODE_IP}
+	node-external-ip: $${NODE_EXTERNAL_IP}
+	EOF
+%{ endif ~}
+%{ if ingress_ip != "" ~}
+	mkdir -p /var/lib/rancher/rke2/server/manifests/
+	cat <<- EOF >> /var/lib/rancher/rke2/server/manifests/rke2-ingress-config.yaml
+	apiVersion: helm.cattle.io/v1
+	kind: HelmChartConfig
+	metadata:
+	  name: rke2-ingress-nginx
+	  namespace: kube-system
+	spec:
+	  valuesContent: |-
+	    controller:
+	      config:
+	        use-forwarded-headers: "true"
+	        enable-real-ip: "true"
+	      publishService:
+	        enabled: true
+	      service:
+	        enabled: true
+	        type: LoadBalancer
+	        externalTrafficPolicy: Local
+	EOF
+%{ endif ~}
+%{ if kube_version != "" ~}
+	export INSTALL_RKE2_VERSION="${kube_version}"
+%{ endif ~}
+	/usr/local/bin/rke2_installer.sh
+	systemctl enable --now rke2-$${INSTALL_RKE2_TYPE}
+}
+
+deploy_demo(){
+	# Check if the demo is already deployed
+	if kubectl get deployment -n hello-kubernetes hello-kubernetes -o name > /dev/null 2>&1; then exit 0; fi
+
+	if [ "$${KUBETYPE}" == "rke2" ]; then
+		# Wait for the rke2-ingress-nginx-controller DS to be available if using RKE2
+		while ! kubectl rollout status daemonset -n kube-system rke2-ingress-nginx-controller --timeout=60s; do sleep 2 ; done
+	fi
+	# I cannot make split work in Terraform templates
+	IP=$(echo ${global_ip_cidr} | cut -d/ -f1)
+	cat <<- EOF | kubectl apply -f -
+	---
+	apiVersion: v1
+	kind: Namespace
+	metadata:
+	  name: hello-kubernetes
+	---
+	apiVersion: v1
+	kind: ServiceAccount
+	metadata:
+	  name: hello-kubernetes
+	  namespace: hello-kubernetes
+	  labels:
+	    app.kubernetes.io/name: hello-kubernetes
+	---
+	apiVersion: v1
+	kind: Service
+	metadata:
+	  name: hello-kubernetes
+	  namespace: hello-kubernetes
+	  labels:
+	    app.kubernetes.io/name: hello-kubernetes
+	spec:
+	  type: ClusterIP
+	  ports:
+	    - port: 80
+	      targetPort: http
+	      protocol: TCP
+	      name: http
+	  selector:
+	    app.kubernetes.io/name: hello-kubernetes
+	---
+	apiVersion: apps/v1
+	kind: Deployment
+	metadata:
+	  name: hello-kubernetes
+	  namespace: hello-kubernetes
+	  labels:
+	    app.kubernetes.io/name: hello-kubernetes
+	spec:
+	  replicas: 2
+	  selector:
+	    matchLabels:
+	      app.kubernetes.io/name: hello-kubernetes
+	  template:
+	    metadata:
+	      labels:
+	        app.kubernetes.io/name: hello-kubernetes
+	    spec:
+	      serviceAccountName: hello-kubernetes
+	      containers:
+	        - name: hello-kubernetes
+	          image: "paulbouwer/hello-kubernetes:1.10"
+	          imagePullPolicy: IfNotPresent
+	          ports:
+	            - name: http
+	              containerPort: 8080
+	              protocol: TCP
+	          livenessProbe:
+	            httpGet:
+	              path: /
+	              port: http
+	          readinessProbe:
+	            httpGet:
+	              path: /
+	              port: http
+	          env:
+	          - name: HANDLER_PATH_PREFIX
+	            value: ""
+	          - name: RENDER_PATH_PREFIX
+	            value: ""
+	          - name: KUBERNETES_NAMESPACE
+	            valueFrom:
+	              fieldRef:
+	                fieldPath: metadata.namespace
+	          - name: KUBERNETES_POD_NAME
+	            valueFrom:
+	              fieldRef:
+	                fieldPath: metadata.name
+	          - name: KUBERNETES_NODE_NAME
+	            valueFrom:
+	              fieldRef:
+	                fieldPath: spec.nodeName
+	          - name: CONTAINER_IMAGE
+	            value: "paulbouwer/hello-kubernetes:1.10"
+	---
+	apiVersion: networking.k8s.io/v1
+	kind: Ingress
+	metadata:
+	  name: hello-kubernetes-ingress
+	  namespace: hello-kubernetes
+	spec:
+	  ingressClassName: ingress-nginx-global
+	  rules:
+	  - host: hellok3s.$${IP}.sslip.io
+	    http:
+	      paths:
+	        - path: "/"
+	          pathType: Prefix
+	          backend:
+	            service:
+	              name: hello-kubernetes
+	              port:
+	                name: http
+	EOF
+}
+
+install_rancher(){
+	# Wait for Kube API to be up. It should be up already but just in case.
+	wait_for_kube_api
+
+	# Download helm as required to install Rancher
+	command -v helm || curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 |bash
+
+	# Get latest Cert-manager version
+	CMVERSION=$(curl -s "https://api.github.com/repos/cert-manager/cert-manager/releases/latest" | jq -r '.tag_name')
+
+	RANCHERFLAVOR=${rancher_flavor}
+	# https://ranchermanager.docs.rancher.com/pages-for-subheaders/install-upgrade-on-a-kubernetes-cluster
+	case $${RANCHERFLAVOR} in
+		"latest" | "stable" | "alpha")
+			helm repo add rancher https://releases.rancher.com/server-charts/$${RANCHERFLAVOR}
+		;;
+		"prime")
+			helm repo add rancher https://charts.rancher.com/server-charts/prime
+		;;
+		*)
+			echo "Rancher flavor not detected, using latest"
+			helm repo add rancher https://releases.rancher.com/server-charts/latest
+		;;
+	esac
+
+	helm repo add jetstack https://charts.jetstack.io
+	helm repo update
+
+	# Install the cert-manager Helm chart
+	helm install cert-manager jetstack/cert-manager \
+		--namespace cert-manager \
+		--create-namespace \
+		--set crds.enabled=true \
+		--version $${CMVERSION}
+
+	IP=""
+	# https://github.com/rancher/rke2/issues/3958
+	if [ "$${KUBETYPE}" == "rke2" ]; then
+		# Wait for the rke2-ingress-nginx-controller DS to be available if using RKE2
+		while ! kubectl rollout status daemonset -n kube-system rke2-ingress-nginx-controller --timeout=60s; do sleep 2 ; done
+		IP=$(kubectl get svc -n kube-system rke2-ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+	fi
+
+	# Get the IP of the ingress object if provided
+	if [ "$${KUBETYPE}" == "k3s" ]; then
+		IP=$(kubectl get svc -n kube-system traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+	fi
+
+	if [[ $${IP} == "" ]]; then
+		# Just use internal IPs
+		IP=$(hostname -I | awk '{print $1}')
+	fi
+
+	# Install rancher using sslip.io as hostname and with just a single replica
+	helm install rancher rancher/rancher \
+		--namespace cattle-system \
+		--create-namespace \
+		--set hostname=rancher.$${IP}.sslip.io \
+		--set bootstrapPassword="${rancher_pass}" \
+		--set replicas=1 \
+		--set global.cattle.psp.enabled=false %{ if rancher_version != "" ~}--version "${rancher_version}"%{ endif ~}
+
+	while ! kubectl wait --for condition=ready -n cattle-system $(kubectl get pods -n cattle-system -l app=rancher -o name) --timeout=10s; do sleep 2 ; done
+}
+
+install_global_ingress(){
+	command -v helm || curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 |bash
+
+	cat <<- EOF > ingress-nginx-global.yaml
+	controller:
+	  ingressClassResource:
+	    name: ingress-nginx-global
+	    controllerValue: k8s.io/ingress-nginx-global
+	  service:
+	    labels:
+	      ingress-type: ingress-nginx-global
+	  admissionWebhooks:
+	    enabled: false
+	EOF
+
+	helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+	helm repo update
+	helm install -f ingress-nginx-global.yaml ingress-nginx-global --namespace ingress-nginx-global --create-namespace ingress-nginx/ingress-nginx
+}
+
+prechecks
+prereqs
+
+if [[ "${kube_version}" =~ .*"k3s".* ]] || [[ "${kube_version}" == "" ]]; then
+	export KUBETYPE="k3s"
+	export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+	echo "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> /etc/profile.d/k3s.sh
+	install_k3s
+	mkdir -p /root/.kube/
+	ln -s /etc/rancher/k3s/k3s.yaml /root/.kube/config
+elif [[ "${kube_version}" =~ .*"rke2".* ]]; then
+	export KUBETYPE="rke2"
+	ln -s /var/lib/rancher/rke2/bin/kubectl /usr/local/bin/kubectl
+	export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+	echo "export KUBECONFIG=/etc/rancher/rke2/rke2.yaml" >> /etc/profile.d/rke2.sh
+	install_rke2
+	mkdir -p /root/.kube/
+	ln -s /etc/rancher/rke2/rke2.yaml /root/.kube/config
+else
+	die "Kubernetes version ${kube_version} not valid" 2
+fi
+
+DEPLOY_DEMO=false
+INSTALL_METALLB=false
+INSTALL_RANCHER=false
+INSTALL_GLOBAL_INGRESS=false
+
+%{ if node_type == "control-plane-master" ~}
+INSTALL_METALLB=true
+%{ if global_ip_cidr != "" ~}
+INSTALL_GLOBAL_INGRESS=true
+%{ endif ~}
+%{ if deploy_demo != "false" ~}
+DEPLOY_DEMO=true
+%{ endif ~}
+%{ if rancher_flavor != "" ~}
+INSTALL_RANCHER=true
+%{ endif ~}
+%{ endif ~}
+
+%{ if node_type == "all-in-one" ~}
+%{ if global_ip_cidr != "" ~}
+INSTALL_METALLB=true
+INSTALL_GLOBAL_INGRESS=true
+%{ endif }
+%{ if ip_pool != "" ~}
+INSTALL_METALLB=true
+%{ endif }
+%{ if deploy_demo != "false" ~}
+DEPLOY_DEMO=true
+%{ endif ~}
+%{ if rancher_flavor != "" ~}
+INSTALL_RANCHER=true
+%{ endif ~}
+%{ endif ~}
+
+[ $${INSTALL_METALLB} == true ] && install_metallb || true
+
+%{ if API_IP != "" ~}
+%{ if node_type == "control-plane-master" ~}
+install_eco
+%{ endif ~}
+%{ endif ~}
+
+[ $${INSTALL_GLOBAL_INGRESS} == true ] && install_global_ingress || true
+[ $${DEPLOY_DEMO} == true ] && deploy_demo || true
+[ $${INSTALL_RANCHER} == true ] && install_rancher || true
