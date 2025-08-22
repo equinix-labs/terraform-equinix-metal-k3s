@@ -72,6 +72,6 @@ jobs:
         arch: amd64
 
     - name: Install shfmt
-      uses: mfinelli/setup-shfmt@v3
+      uses: mfinelli/setup-shfmt@v4
 
     - uses: pre-commit/action@v3.0.1
