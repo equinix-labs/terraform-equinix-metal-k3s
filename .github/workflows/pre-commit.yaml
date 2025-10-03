@@ -35,7 +35,7 @@ jobs:
         python-version: '3.x'
 
     - name: Install tflint
-      uses: terraform-linters/setup-tflint@v4
+      uses: terraform-linters/setup-tflint@v6
       with:
         tflint_version: ${{ env.TFLINT_VERSION }}
 
